@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+
+<link rel="stylesheet" type="text/css" href="RelationshipBrowser.css">
+
+<!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
+<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+<!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
+
+<!-- EasyTree: http://www.easyjstree.com/ - license: https://opensource.org/licenses/MIT -->
+<link rel="stylesheet" type="text/css" href="skin-win8/ui.easytree.css" class="skins">
+<script type="text/javascript" src="jquery.easytree.min.js"></script>
+<!-- EasyTree: http://www.easyjstree.com/ - license: https://opensource.org/licenses/MIT -->
+
+<!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
+<script src="rollups/hmac-sha256.js"></script>
+<script src="components/enc-base64-min.js"></script>
+<!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
+
+</head>
+<body>
+
+<div class="page">
+	<div class="struct" style="background-color: #3F51B5; height: 56px;">
+		<div class="authID">
+			<h2>Partner ID:</h2> <input type="text" class="partnerID" onblur="authenticate()">
+		</div>
+		<div class="authKey">
+			<h2>Partner Key:</h2> <input type="password" class="partnerKey" onblur="authenticate()">
+			<a href="javascript:toggleCommandLog();" style="padding-left: 210px;">API Call Log</a>
+		</div>
+	</div>
+	<div class="struct">
+		<div class="content">
+			<div class="source">
+				<h1>Source Standard</h1>
+				<select class="authority" onchange="loadFacets('publication'); lockLabels()"><option /></select>
+				<select class="publication" onchange="loadFacets('doc'); lookupAncestors('publication'); lockLabels()"><option /></select>
+				<select class="doc" onchange="loadFacets('section'); lookupAncestors('doc'); lockLabels()"><option /></select>
+				<select class="section" onchange="loadSection(); lookupAncestors('section'); lockLabels()"><option /></select>
+			</div>
+			<div class="tree" style="margin: 15px; width: 600px;">
+				<ul>
+				</ul>
+			</div>
+			<div class="destination">
+				<h1>Search Document for Similar Standards</h1>
+				<div><h2>Relationship Type:</h2>
+					<select class="relationship" onchange="loadSiblings()">
+						<option>Peer</option>
+						<option>Peer Derivative</option>
+						<option>Derivative</option>
+						<option>Origin</option>
+						<option>Topic</option>
+					</select>
+					<input type="checkbox" class="filterGrade" onchange="updateGrades();forceSiblingRefresh();"> <div class="filterGradeLabel" disabled>Grade: </div>
+					<select class="lowGrade" onchange="forceSiblingRefresh();" disabled>
+						<option>K</option>
+						<option>1</option>
+						<option>2</option>
+						<option>3</option>
+						<option>4</option>
+						<option>5</option>
+						<option>6</option>
+						<option>7</option>
+						<option>8</option>
+						<option>9</option>
+						<option>10</option>
+						<option>11</option>
+						<option>12</option>
+					</select>
+					<select class="highGrade" onchange="forceSiblingRefresh();" disabled>
+						<option>K</option>
+						<option>1</option>
+						<option>2</option>
+						<option>3</option>
+						<option>4</option>
+						<option>5</option>
+						<option>6</option>
+						<option>7</option>
+						<option>8</option>
+						<option>9</option>
+						<option>10</option>
+						<option>11</option>
+						<option>12</option>
+					</select>
+				</div>
+				<select class="dest_authority" onchange="loadFacets('dest_publication'); lockLabels()"><option /></select>
+				<select class="dest_publication" onchange="loadFacets('dest_doc'); lookupAncestors('dest_publication'); lockLabels()"><option /></select>
+				<select class="dest_doc" onchange="lookupAncestors('dest_doc'); loadSiblings(); lockLabels()"><option /></select>
+			</div>
+			<div class="relationshipListArea">
+				<select class="relationshipList" size="10" onchange="selectRelatedStandard()"><option /></select>
+			</div>
+			<div class="commandArea">
+				<hr />
+				<h2 style="color: #888888;">API Log:</h2>
+				<textarea class="commandList" rows="10" readonly></textarea>
+			</div>
+		</div>
+		<div class="data">
+			<div class="detailsTitle"><h1>Details of Standard</h1></div>
+			<pre class="details">
+			</pre>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript" src="RelationshipBrowser.js"></script>
+
+</body>
+</html>
+    
