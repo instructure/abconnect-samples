@@ -13,7 +13,7 @@ Partner ID that [AB Support](mailto:absupport@certicasolutions.com) assigned to 
 and complete the authentication fields in order to make the calls.
 
 ## Collections
-+ [Demo Activating Content Using Clarifications](./Demo_Activating_Content_Using_Clarifications.postman_collection) - Illustrates the calls used for Activating Content using AB Connect.
++ [Demo Activating Content Using Clarifications](./Demo_Activating_Content_Using_Clarifications.postman_collection?at=master) - Illustrates the calls used for Activating Content using AB Connect.
 Content Activation is the process of describing your content to AB Connect in machine readable form in order to enable the learning algorithms to relate your content to standards and make
 suggestions for additional relationships.
 
