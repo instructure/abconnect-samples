@@ -480,7 +480,11 @@ function PopulateNode(data, node) {
 		// build the node
 		//
 		var child = {};
-		child.text = standard.attributes.number.raw + " " + standard.attributes.statement.descr; // The tree entry label is th standard number + descr
+		var number = "";
+		if (standard.attributes.number.raw) {
+			number = standard.attributes.number.raw;
+		}
+		child.text = number + " " + standard.attributes.statement.descr; // The tree entry label is th standard number + descr
 		//
 		// set the folder status based on the children count
 		//
