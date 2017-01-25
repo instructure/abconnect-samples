@@ -459,7 +459,11 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
 	}
 	grade += source.attributes.section.descr
 	gOutSheet.getCell(gOutRow,1).value = grade;
-	gOutSheet.getCell(gOutRow,2).value = source.attributes.number.enhanced;
+	var number = '';
+	if (source.attributes.number.enhanced) {
+		number = source.attributes.number.enhanced;
+	}
+	gOutSheet.getCell(gOutRow,2).value = number;
 	gOutSheet.getCell(gOutRow,3).value = source.attributes.statement.combined_descr;
 	grade = '';
 	if (sibling.attributes.section.number) {
@@ -467,6 +471,10 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
 	}
 	grade += sibling.attributes.section.descr
 	gOutSheet.getCell(gOutRow,4).value = grade;
+	number = '';
+	if (sibling.attributes.number.enhanced) {
+		number = sibling.attributes.number.enhanced;
+	}
 	gOutSheet.getCell(gOutRow,5).value = sibling.attributes.number.enhanced;
 	gOutSheet.getCell(gOutRow,6).value = sibling.attributes.statement.combined_descr;
 	
