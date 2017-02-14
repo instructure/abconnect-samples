@@ -3,137 +3,137 @@
 /* Roboto font from Google Fonts https://fonts.google.com/specimen/Roboto - license: http://www.apache.org/licenses/LICENSE-2.0 */
 
 body {
-	background-color: GhostWhite;
+  background-color: GhostWhite;
 }
 h1 {
-	font-family: Roboto;
-	margin-bottom: 5px;
+  font-family: Roboto;
+  margin-bottom: 5px;
 }
 h2 {
-	font-family: Roboto;
-	font-size: 14pt;
-	font-weight: bold;
-	display: inline;
+  font-family: Roboto;
+  font-size: 14pt;
+  font-weight: bold;
+  display: inline;
 }
 .page {
-	width: 1200px;
-	display: table;
-	margin: auto;
-	background-color: white;
+  width: 1200px;
+  display: table;
+  margin: auto;
+  background-color: white;
 }
 .struct {
-	display: table-row;
+  display: table-row;
 }
 .content {
-	width: 600px;
-	display: table-cell;
+  width: 600px;
+  display: table-cell;
 }
 .authID {
-	width: 600px;
-	display: table-cell;
-	padding: 15px 30px;
+  width: 600px;
+  display: table-cell;
+  padding: 15px 30px;
 }
 .authID h2 {
-	color: white;
+  color: white;
 }
 .data {
-	width: 600px;
-	display: table-cell;
+  width: 600px;
+  display: table-cell;
 }
 .authKey {
-	width: 600px;
-	display: table-cell;
-	padding: 15px;
+  width: 600px;
+  display: table-cell;
+  padding: 15px;
 }
 .authKey h2 {
-	color: white;
+  color: white;
 }
 .authKey a {
-	color: white;
-	font-family: Roboto;
-	font-size: 12pt;
-	font-weight: bold;
-	text-decoration: none;
+  color: white;
+  font-family: Roboto;
+  font-size: 12pt;
+  font-weight: bold;
+  text-decoration: none;
 }
 .authKey a:hover {
-	text-decoration: underline;	
+  text-decoration: underline; 
 }
 .authKey a:focus {
-	outline-style: none;	
+  outline-style: none;  
 }
 .source {
-	margin: 15px;
+  margin: 15px;
 }
 .relationship {
 
 }
 .destination {
-	margin: 15px;
-	font-family: Roboto;
+  margin: 15px;
+  font-family: Roboto;
 }
 .relationshipListArea {
-	margin: 15px;
+  margin: 15px;
 }
 .relationshipList {
-	width: 100%;
-	overflow-x: auto;
+  width: 100%;
+  overflow-x: auto;
 }
 .commandArea {
-	padding-top: 30px;
-	margin: 15px;
-	display: none;
+  padding-top: 30px;
+  margin: 15px;
+  display: none;
 }
 .commandList {
-	width: 100%;
-	color: #888888;
-	margin-left: -7px;
+  width: 100%;
+  color: #888888;
+  margin-left: -7px;
 }
 .detailsTitle {
-	font-family: Roboto;
+  font-family: Roboto;
 }
 .details {
-	width: 600px;
-	overflow-x: auto;
-	height: 800px;
+  width: 600px;
+  overflow-x: auto;
+  height: 800px;
     overflow-y: auto;
-	margin-top: 5px;
-	background-color: #f7f7f7;
+  margin-top: 5px;
+  background-color: #f7f7f7;
 }
 .filterGradeLabel {
-	display: inline;
-	color: grey;
-	font-size: 11pt;
+  display: inline;
+  color: grey;
+  font-size: 11pt;
 }
 .filterGrade {
-	margin-left: 10px;
+  margin-left: 10px;
 }
 .authority {
-	width: 20%;
+  width: 20%;
 }
 .publication {
-	width: 20%;
+  width: 20%;
 }
 .doc {
-	width: 20%;
+  width: 20%;
 }
 .section {
-	width: 20%;
+  width: 20%;
 }
 .dest_authority {
-	width: 20%;
+  width: 20%;
 }
 .dest_publication {
-	width: 20%;
+  width: 20%;
 }
 .dest_doc {
-	width: 20%;
+  width: 20%;
 }
 .key {
-	color: green;
+  color: green;
 }
 .string {
-	color: blue;
+  color: blue;
 }
 .guid {
-	color: red;
+  color: red;
 }
