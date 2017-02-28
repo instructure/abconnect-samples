@@ -1,0 +1,17 @@
+{
+  "name": "relationships",
+  "version": "1.0.0",
+  "description": "A command line tool to navigate AB standards relationships.",
+  "main": "relationships.js",
+  "scripts": {
+    "test": "echo \"Error: needs input\" && exit 1"
+  },
+  "author": "George Menyhert <gmenyhert@certicasolutions.com>",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.9.0",
+    "exceljs": "^0.3.0",
+    "node-rest-client": "^2.5.0",
+    "winston": "^2.2.0"
+  }
+}

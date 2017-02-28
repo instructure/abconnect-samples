@@ -11,14 +11,14 @@ macro and editor to build the list of GUIDs.
 + Install required modules
 
 ```sh
-        $ npm install commander winston exceljs node-rest-client
+        $ npm install
 ```
 ## Usage
 The relationships script maps standards from one document to another using one of a number of relationships maintained by AB.  The origin and destination documents may be written by different authorities
-or they may be from the same authority and the goal is to examine how an older document maps to a new one.  The main goal of this script is to illustrate how to interact with AB Connect and use it
+or they may be from the same authority with the goal being to examine how an older document maps to a new one.  The main goal of this script is to illustrate how to interact with AB Connect and use it
 (combined with the data and relationships supplied by Academic Benchmarks) to see how standards relate between documents.
 
-The script expects an input Excel (xlsx) workbook that serves as input, as well as, the output template for the script.
+The script expects an Excel (xlsx) workbook that serves as input, as well as, the output template for the script.
 The workbook must contain two sheets.  The first sheet is the input.  The second sheet is the template for the output.
 The first sheet:
 + Row 1 is column headers (which are ignored by the script).
