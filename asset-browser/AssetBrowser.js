@@ -42,6 +42,13 @@ var gKeyFacets = {
   }
 };
 
+// Pull in a file that could be used to pre-populate fields.
+var imported = document.createElement('script');
+imported.src = 'fieldDefaults.js';
+document.head.appendChild(imported);
+
+
+
 jQuery.support.cors = true;
 //
 // identifyFacets - determine what facets are supported for this customer
@@ -420,8 +427,6 @@ function authenticationParameters() {
 // authenticate - build the required credentials and load the page
 //
 function authenticate() {
-  if (gSignature) return; // if you enter the partner info and then click on another partner info field, it loads.  If you then click on anything, it can whack the UI, so we skip re-auth if it was done already.
-  
   gPartnerID = $('.partnerID').val().trim();
   var partnerKey = $('.partnerKey').val().trim();
   
@@ -439,7 +444,16 @@ function authenticate() {
   //
   var hash = CryptoJS.HmacSHA256(message, partnerKey);
   gSignature = CryptoJS.enc.Base64.stringify(hash);
-  
+  //
+  // clear the facet groups (just in case someone authenticates a second time)
+  //
+  for (var item in gKeyFacets) {  // loop over the facets of interest
+    if (gKeyFacets.hasOwnProperty(item)) { // make sure this is a real property
+      $(gKeyFacets[item].class + " .checks").empty();
+      $(gKeyFacets[item].class).show();
+    }
+  }
+
   identifyFacets();
 }
 //
