@@ -1,0 +1,20 @@
+{
+  "name": "ab-connect-samples",
+  "version": "1.0.0",
+  "description": "A repository to house example widget apps",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "node deploy.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@bitbucket.org/certicasolutions/ab-connect-samples.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://bitbucket.org/certicasolutions/ab-connect-samples#readme",
+  "devDependencies": {
+    "aws-sdk": "^2.28.0"
+  }
+}
