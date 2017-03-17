@@ -1,6 +1,7 @@
 const fs = require('fs')
 const mime = require('mime')
 const AWS = require('aws-sdk')
+const crypto = require('crypto')
 const S3_BUCKET = 'ab-widgets.academicbenchmarks'
 const S3_ROOT = 'ABConnect/v4/'
 const S3_ACL = 'public-read'
@@ -33,8 +34,10 @@ function sync(localFiles, remoteFiles) {
 
     // Remove from array so that we don't process it again in the next step
     let localFile = localFiles.splice(localFileIndex,1)[0]
+    let localData = fs.readFileSync(localFile.name, {encoding: null})
+    localFile.eTag = crypto.createHash('md5').update(localData).digest('hex')
 
-    if (localFile.lastModified > remoteFile.lastModified) {
+    if (localFile.eTag !== remoteFile.eTag) {
       // File has been updated since last upload, so upload again
       filesToUpload.push(localFile.name)
     }
@@ -127,7 +130,6 @@ function listLocalFiles(dir,filelist) {
     else
       filelist.push({
         name: fullFileName,
-        lastModified: stat.mtime.getTime(),
       })
   })
 
@@ -170,7 +172,7 @@ function listRemoteFiles(dir,remoteFiles,continuationToken) {
 
         remoteFiles.push({
           name: relativeFileName,
-          lastModified: file.LastModified.getTime(),
+          eTag: file.ETag.slice(1,-1),
         })
       })
 
