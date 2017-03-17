@@ -1,4 +1,5 @@
 const fs = require('fs')
+const mime = require('mime')
 const AWS = require('aws-sdk')
 const S3_BUCKET = 'ab-widgets.academicbenchmarks'
 const S3_ROOT = 'ABConnect/v4/'
@@ -85,6 +86,7 @@ function sync(localFiles, remoteFiles) {
         Key         : S3_ROOT+fileName,
         ACL         : S3_ACL,
         Body        : fs.createReadStream(fileName),
+        ContentType : mime.lookup(fileName),
         CacheControl: 'max-age=86400, public, must-revalidate, proxy-revalidate',
       })
 
