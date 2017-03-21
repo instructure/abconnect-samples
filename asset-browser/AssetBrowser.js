@@ -44,7 +44,7 @@ var gKeyFacets = {
 
 // Pull in a file that could be used to pre-populate fields.
 var imported = document.createElement('script');
-imported.src = 'fieldDefaults.js';
+imported.src = '../fieldDefaults.js';
 document.head.appendChild(imported);
 
 
