@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+
+<!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
+
+<!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
+<script src="rollups/hmac-sha256.js"></script>
+<script src="components/enc-base64-min.js"></script>
+<!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
+
+<script src="https://widgets.academicbenchmarks.com/ABConnect/v4/dist/widgets.js"></script>
+
+<link rel="stylesheet" type="text/css" href="StandardsBrowser.css">
+
+</head>
+<body>
+
+<div class="page">
+	<div class="struct" style="background-color: #1976d2; height: 56px;">
+		<div class="authID">
+			<h2>Partner ID:</h2> <input type="text" class="partnerID">
+		</div>
+		<div class="authKey">
+			<h2>Partner Key:</h2> <input type="password" class="partnerKey" onblur="authenticate()">
+			<a href="javascript:toggleCommandLog();" style="padding-left: 190px;">API Call Log</a>
+		</div>
+	</div>
+	<div class="struct">
+		<div class="content">
+			<div class="source">
+				<h1>Standard</h1>
+        <div class="instructions">The area in the dotted outline below is the AB Connect embeddable Standards Browser widget.  It can be embedded in your web app with just a few lines of code.</div>
+				<div class="standard"></div>
+			</div>
+			<div class="commandArea">
+				<hr />
+				<h2 style="color: #888888;">API Log:</h2>
+				<textarea class="commandList" rows="10" readonly></textarea>
+			</div>
+		</div>
+		<div class="data">
+			<div class="detailsTitle"><h1>Details of Standard</h1></div>
+      <div class="instructions">Below is the raw JSON definition of the selected standard. Click on "API Call Log" above to see the API calls being made.</div>
+			<pre class="details">
+			</pre>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript" src="StandardsBrowser.js"></script>
+
+</body>
+</html>
+    
