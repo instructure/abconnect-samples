@@ -4,7 +4,7 @@ Place all of the files/folders in one directory (download or clone).
 
 ## Usage
 Open [RelationshipBrowser.html](./RelationshipBrowser.html) with a browser.  Enter your AB Connect partner ID and Key into the fields at the top of the page.  Tab/click away from the partner
-fields and the page will load.
+fields and the page will load. You can see a [working example of the app here](https://widgets.academicbenchmarks.com/ABConnect/v4/relationships-browser/RelationshipBrowser.html).
 
 This version of the relationship browser uses the AB Connect Standards Browser embeddable widget.  The area outlined in a dotted blue line is supplied by AB Connect without any code from
 the parent app.  For this reason, the calls in this area are not included in the API log as they are encapsulated hidden from the parent app.  If you would like to see the calls, check out

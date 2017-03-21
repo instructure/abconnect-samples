@@ -1,6 +1,6 @@
 # AB Connect Code Samples
 This repository holds various code samples to help developers new to AB Connect come up to speed quickly. Where possible, the samples are posted as fully usable mini-apps that can be used
-as is with little or no effort beyond installation.
+as-is with little or no effort beyond installation.
 
 All samples and apps are offered as-is with no warranty.  Although they are often usable as is, the main purpose is to illustrate how to interact with the AB Connect API.  If any particular app
 doesn't do what you need, feel free to download a copy and modify it to meet your needs.  This repository is not meant to host solutions for non-technical users nor is it a location to submit requests
