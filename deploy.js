@@ -8,7 +8,7 @@ const crypto = require('crypto')
 const CLOUDFRONT_DISTRIBUTION_ID = process.env.CLOUDFRONT_DISTRIBUTION_ID
 const CLOUDFRONT_NAMESPACE = 'DEMOS'
 const S3_BUCKET = process.env.S3_BUCKET
-const S3_ROOT = '/ABConnect/v4/'
+const S3_ROOT = 'ABConnect/v4/'
 const S3_ACL = 'public-read'
 const S3_CACHECONTROL = 's-maxage=3600, max-age=3600, public, must-revalidate, proxy-revalidate'
 
@@ -178,7 +178,7 @@ function invalidate(paths) {
 
   paths = paths.map(path => {
     // The path is relative to the distribution and must begin with '/'.
-    path = S3_ROOT+path
+    path = '/'+S3_ROOT+path
 
     // URL encode non-ASCII or unsafe characters as defined in RFC 1783.
     // TODO: if you get error:
