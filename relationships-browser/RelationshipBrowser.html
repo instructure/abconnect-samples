@@ -2,30 +2,27 @@
 <html><head>
 <meta charset="UTF-8">
 
-<link rel="stylesheet" type="text/css" href="RelationshipBrowser.css">
-
 <!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
-<link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 <!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
-
-<!-- EasyTree: http://www.easyjstree.com/ - license: https://opensource.org/licenses/MIT -->
-<link rel="stylesheet" type="text/css" href="skin-win8/ui.easytree.css" class="skins">
-<script type="text/javascript" src="jquery.easytree.min.js"></script>
-<!-- EasyTree: http://www.easyjstree.com/ - license: https://opensource.org/licenses/MIT -->
 
 <!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
 <script src="rollups/hmac-sha256.js"></script>
 <script src="components/enc-base64-min.js"></script>
 <!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
 
+<script src="https://widgets.academicbenchmarks.com/ABConnect/v4/dist/widgets.js"></script>
+
+<link rel="stylesheet" type="text/css" href="RelationshipBrowser.css">
+
 </head>
 <body>
 
 <div class="page">
-	<div class="struct" style="background-color: #3F51B5; height: 56px;">
+	<div class="struct" style="background-color: #1976d2; height: 56px;">
 		<div class="authID">
-			<h2>Partner ID:</h2> <input type="text" class="partnerID" onblur="authenticate()">
+			<h2>Partner ID:</h2> <input type="text" class="partnerID">
 		</div>
 		<div class="authKey">
 			<h2>Partner Key:</h2> <input type="password" class="partnerKey" onblur="authenticate()">
@@ -36,17 +33,14 @@
 		<div class="content">
 			<div class="source">
 				<h1>Source Standard</h1>
-				<select class="authority" onchange="loadFacets('publication'); lockLabels()"><option /></select>
-				<select class="publication" onchange="loadFacets('doc'); lookupAncestors('publication'); lockLabels()"><option /></select>
-				<select class="doc" onchange="loadFacets('section'); lookupAncestors('doc'); lockLabels()"><option /></select>
-				<select class="section" onchange="loadSection(); lookupAncestors('section'); lockLabels()"><option /></select>
-			</div>
-			<div class="tree" style="margin: 15px; width: 600px;">
-				<ul>
-				</ul>
+        <div class="instructions">The area in the dotted outline below is the AB Connect embeddable Standards Browser widget.  It can be embedded in your web app with just a few lines of code.</div>
+				<div class="sourceStandard"></div>
 			</div>
 			<div class="destination">
 				<h1>Search Document for Similar Standards</h1>
+        <div class="instructions">To find standards in different states similar to the standard you have selected above, select an authority, publication and subject below.  The Relationship Type
+        field allows you to specify the type of relationship you'd like to use when searching for similar standards.  You can also narrow the results by grade.
+        </div>
 				<div><h2>Relationship Type:</h2>
 					<select class="relationship" onchange="loadSiblings()">
 						<option>Peer</option>
@@ -102,6 +96,7 @@
 		</div>
 		<div class="data">
 			<div class="detailsTitle"><h1>Details of Standard</h1></div>
+      <div class="instructions">Below is the raw JSON definition of the selected item. Click on "API Call Log" above to see the API calls being made.</div>
 			<pre class="details">
 			</pre>
 		</div>

@@ -2,15 +2,16 @@ const HOST = 'https://api.academicbenchmarks.com'
 const STANDARDS_URL = HOST + "/rest/v4/standards";
 const TOPICS_URL = HOST + "/rest/v4/topics";
 const DETAILS_LABEL_REL = 'Details of Related Standard';
+const DETAILS_LABEL = 'Details of Source Standard';
 const LIST_NAME = {
-  ".authority": "Authority",
-  ".publication": "Publication",
-  ".doc": "Subject",
-  ".section": "Section",
   ".dest_authority": "Authority",
   ".dest_publication": "Publication",
   ".dest_doc": "Subject"
 };
+const AUTH_WIDGET = "dest_authority";
+const PUB_WIDGET = "dest_publication";
+const DOC_WIDGET = "dest_doc";
+
 var gPartnerID = null;
 var gSignature = null;
 var gAuthExpires = null;
@@ -18,14 +19,12 @@ var gTopicsLicensed = false;
 var gRelationshipsLicensed = false;
 var gGradeFilter = false;
 
+// Pull in a file that could be used to pre-populate fields.
+var imported = document.createElement('script');
+imported.src = '../fieldDefaults.js';
+document.head.appendChild(imported);
+
 jQuery.support.cors = true;
-//
-// Create the core tree object
-//
-var gEasyTree = $('.tree').easytree({
-  openLazyNode: openLazyNode,
-  stateChanged: stateChanged
-});
 //
 // loadFacets - pull the facet data that populates the drop down list.  This same code is used for the "source" standards and the "related"
 //  standards.
@@ -33,10 +32,6 @@ var gEasyTree = $('.tree').easytree({
 //  listName - name of the list to be loaded
 //
 function loadFacets(listName) {
-  //
-  // determine which set of lists we are dealing with - source or related
-  //
-  var listDef = determineListDef(listName);
   //
   // construct the URL to retreive the facets
   //
@@ -47,21 +42,21 @@ function loadFacets(listName) {
   // left for data that populates the right.
   //
   var filter = "";
-  if (listName !== listDef.AUTH_WIDGET) { // the widget is not the authority widget - so add authority to the filter criteria - i.e. only publications under this authority will appear
-    var authority = $( "select." + listDef.AUTH_WIDGET + " option:selected").val();
+  if (listName !== AUTH_WIDGET) { // the widget is not the authority widget - so add authority to the filter criteria - i.e. only publications under this authority will appear
+    var authority = $( "select." + AUTH_WIDGET + " option:selected").val();
     if (authority) {
       filter = "document.publication.authorities.guid EQ '" + authority + "'";
     }
-    if (listName !== listDef.PUB_WIDGET) { // we are not working with the publication either, so add publication to the filter criteria - i.e. only subjects under this publication appear
-      var publication = $( "select." + listDef.PUB_WIDGET + " option:selected").val();
+    if (listName !== PUB_WIDGET) { // we are not working with the publication either, so add publication to the filter criteria - i.e. only subjects under this publication appear
+      var publication = $( "select." + PUB_WIDGET + " option:selected").val();
       if (publication) {
         if (filter) {
           filter += ' AND '
         }
         filter += "document.publication.guid EQ '" + publication + "'";
       }
-      if (listName !== listDef.DOC_WIDGET) { // subject (actually, document - it is the subject/year combination)
-        var doc = $( "select." + listDef.DOC_WIDGET + " option:selected").val();
+      if (listName !== DOC_WIDGET) { // subject (actually, document - it is the subject/year combination)
+        var doc = $( "select." + DOC_WIDGET + " option:selected").val();
         if (doc) {
           if (filter) {
             filter += ' AND '
@@ -80,29 +75,19 @@ function loadFacets(listName) {
   //
   var facet = '&facet=';
   //
-  // Note that there is no "section" for the related standards list - this was a choice so it would show relationships across
-  // courses or grades.  So only add the section facet into the list if we are working with the source standards.
-  //
-  if (listDef.bSource) {
-    facet += 'section,'; // add the section to the facet list
-    $( "select.section option:selected").removeAttr('selected'); // unselect whatever was selected
-    $('select.section').empty(); // clear out the list
-        $('select.section').prop('disabled', 'disabled'); // disable the list until it is repopulated with accurate data
-    }
-  //
   // When requesting facets, the logic is basically the opposite of the filter logic - start at the bottom and work your way up
   //
   if (listName !== 'section') { // we are higher than the section - request the document facets
     facet += 'document,'; // add the document to the facet list
-    $( "select." + listDef.DOC_WIDGET + " option:selected").removeAttr('selected');  // unselect whatever was selected
-    $('select.' + listDef.DOC_WIDGET).empty(); // clear out the list
-        $('select.' + listDef.DOC_WIDGET).prop('disabled', 'disabled'); // disable the list until it is repopulated with accurate data
-    if (listName !== listDef.DOC_WIDGET) { // we are higher than the document list
+    $( "select." + DOC_WIDGET + " option:selected").removeAttr('selected');  // unselect whatever was selected
+    $('select.' + DOC_WIDGET).empty(); // clear out the list
+        $('select.' + DOC_WIDGET).prop('disabled', 'disabled'); // disable the list until it is repopulated with accurate data
+    if (listName !== DOC_WIDGET) { // we are higher than the document list
       facet += 'document.publication,';  // add the publication to the facet list
-      $( "select." + listDef.PUB_WIDGET + " option:selected").removeAttr('selected'); // unselect whatever was selected
-      $('select.' + listDef.PUB_WIDGET).empty();  // clear out the list
-      $('select.' + listDef.PUB_WIDGET).prop('disabled', 'disabled'); // disable the list until it is repopulated with accurate data
-      if (listName !== listDef.PUB_WIDGET) { // we only get here for authorities - since this only happens on initial load, we don't need to clear the drop down, but we need to make sure we are requesting the facet
+      $( "select." + PUB_WIDGET + " option:selected").removeAttr('selected'); // unselect whatever was selected
+      $('select.' + PUB_WIDGET).empty();  // clear out the list
+      $('select.' + PUB_WIDGET).prop('disabled', 'disabled'); // disable the list until it is repopulated with accurate data
+      if (listName !== PUB_WIDGET) { // we only get here for authorities - since this only happens on initial load, we don't need to clear the drop down, but we need to make sure we are requesting the facet
         facet += 'document.publication.authorities,';
       }
     }
@@ -122,7 +107,7 @@ function loadFacets(listName) {
     dataType: 'json',
     success: function(data,status)
       {
-      PopulateFacets(data, listDef);
+      PopulateFacets(data);
       },
     error: function(req, status, error)
       {
@@ -130,8 +115,6 @@ function loadFacets(listName) {
       }
     }
   );
-  
-  if (listDef.bSource) loadSection(); // load the tree or clear it
 }
 //
 // lookupAncestors - If a descendent is selected (like a section) and parents aren't selected yet, get the parents
@@ -140,10 +123,6 @@ function loadFacets(listName) {
 //  listName - name of the list to be loaded
 //
 function lookupAncestors(listName) {
-  //
-  // determine which set of lists we are dealing with
-  //
-  var listDef = determineListDef(listName);
   //
   // construct the URL to retreive the facets
   //
@@ -154,20 +133,15 @@ function lookupAncestors(listName) {
   var filter;
   var facet;
   switch(listName) {
-    case listDef.PUB_WIDGET: // we are working with the publication
-      var publication = $( "select." + listDef.PUB_WIDGET + " option:selected").val(); // grab the current publication
+    case PUB_WIDGET: // we are working with the publication
+      var publication = $( "select." + PUB_WIDGET + " option:selected").val(); // grab the current publication
       filter = "document.publication.guid EQ '" + publication + "'"; // add it to the filter criteria
       facet = 'document.publication.authorities'; // ask for the parent in the facets
       break;
-    case listDef.DOC_WIDGET: // we are working with the document (subject/year)
-      var doc = $( "select." + listDef.DOC_WIDGET + " option:selected").val(); // grab the current document
+    case DOC_WIDGET: // we are working with the document (subject/year)
+      var doc = $( "select." + DOC_WIDGET + " option:selected").val(); // grab the current document
       filter = "document.guid EQ '" + doc + "'"; // add it to the filter criteria
       facet = 'document.publication.authorities,document.publication'; // ask for the parents in the facets
-      break;
-    case 'section': // we are working with the section (course/grade)
-      var section = $( "select.section option:selected").val(); // grab the current section
-      filter = "section.guid EQ '" + section + "'";  // add it to the filter criteria
-      facet = 'document.publication.authorities,document.publication,document'; // ask for the parents in the facets
       break;
   }
   //
@@ -188,7 +162,7 @@ function lookupAncestors(listName) {
     dataType: 'json',
     success: function(data,status)
       {
-      SelectAncestors(data, listDef);
+      SelectAncestors(data);
       },
     error: function(req, status, error)
       {
@@ -203,9 +177,8 @@ function lookupAncestors(listName) {
 //  value
 //
 //  data - AJAX response
-//  listDef - the definition of the lists we are working with
 //
-function SelectAncestors(data, listDef) {
+function SelectAncestors(data) {
   //
   // loop over facet types and act on those that have data.  Since downstream data isn't requested
   // we only process the data we receive on any given call.
@@ -216,81 +189,32 @@ function SelectAncestors(data, listDef) {
       //
       // locate the relevant list and select the proper list item
       //
-      $('select.' + listDef.AUTH_WIDGET + ' option[value="' + data.meta.facets[i].details[0].data.guid + '"]').attr('selected', 'selected');
+      $('select.' + AUTH_WIDGET + ' option[value="' + data.meta.facets[i].details[0].data.guid + '"]').attr('selected', 'selected');
       
     } else if (data.meta.facets[i].facet === 'document.publication' &&  // we are working with the publcation and have data
       data.meta.facets[i].details) {
       //
       // locate the relevant list and select the proper list item
       //
-      $('select.' + listDef.PUB_WIDGET + ' option[value="' + data.meta.facets[i].details[0].data.guid + '"]').attr('selected', 'selected');
+      $('select.' + PUB_WIDGET + ' option[value="' + data.meta.facets[i].details[0].data.guid + '"]').attr('selected', 'selected');
       
     } else if (data.meta.facets[i].facet === 'document' && // we are working with the document and have data
       data.meta.facets[i].details) {
       //
       // locate the relevant list and select the proper list item
       //
-      $('select.' + listDef.DOC_WIDGET + ' option[value="' + data.meta.facets[i].details[0].data.guid + '"]').attr('selected', 'selected');
+      $('select.' + DOC_WIDGET + ' option[value="' + data.meta.facets[i].details[0].data.guid + '"]').attr('selected', 'selected');
     }
   }
   
   lockLabels();
 }
 //
-// loadSection - Load the appropriate section information into the tree for browsing.  Note that we only load the top level items
-//    and then we lazy load the deeper branches and leaves to avoid the overhead of populating the full tree when it is unlikely anyone
-//    will open the entire tree.
-//
-var gSectionGUID = null; // the GUID of the section open in the tree - keep it around as we use it in several places.
-function loadSection() {
-  //
-  // grab the current section from the list
-  //
-  var section = $( "select.section option:selected").val();
-  //
-  // if the section has changed, let's start by clearing it.
-  //
-  if (gSectionGUID != section) {
-    //
-    // empty the tree and rebuild it - there is no way to do this in one call with easytree
-    //
-    while (gEasyTree.getAllNodes().length > 0) {
-      gEasyTree.removeNode(gEasyTree.getAllNodes()[0].id); // remove this node
-    }
-    gEasyTree.rebuildTree();
-    //
-    // clear any related data so we can reload as appropriate
-    //
-    gActiveNode = null; // forget about the active node in the tree
-    gCurrentSourceStandard = null; // forget the ID of the standard in the detail view
-    $( "select.relationshipList").empty(); // clear the related items list
-    $('.details').empty(); // clear the standard details
-  }
-  //
-  // Now if we have a section and it is new, let's load it
-  //
-  if (section &&
-    gSectionGUID != section) {
-    
-    gSectionGUID = section; // remember the active section
-    //
-    // Populate the tree if there is enough data
-    //
-    var node = {};
-    node.id = '';
-    node.guid = false;
-    openLazyNode(false, false, node, false);
-  } else { // no section - clear the history
-    gSectionGUID = null;
-  }
-}
-//
 // PopulateFacets - function to load the facet lists to the UI
 //
 //  data - AJAX response
-//  listDef - the definition of the lists we are working with
 //
-function PopulateFacets(data, listDef) {
+function PopulateFacets(data) {
   //
   // loop over facet types and act on those that have data.  Since upstream data isn't requested
   // we only process the data we receive on any given call.
@@ -311,7 +235,7 @@ function PopulateFacets(data, listDef) {
       //
       // Now load the list with the elements
       //
-      PopulateList('.' + listDef.AUTH_WIDGET, $('.' + listDef.AUTH_WIDGET + ' option:selected').val(), data.meta.facets[i].details);
+      PopulateList('.' + AUTH_WIDGET, $('.' + AUTH_WIDGET + ' option:selected').val(), data.meta.facets[i].details);
       
     } else if (data.meta.facets[i].facet === 'document.publication' && data.meta.facets[i].details) { // publication
       //
@@ -327,7 +251,7 @@ function PopulateFacets(data, listDef) {
       //
       // Now load the list with the elements
       //
-      PopulateList('.' + listDef.PUB_WIDGET, $('.' + listDef.PUB_WIDGET + ' option:selected').val(), data.meta.facets[i].details);
+      PopulateList('.' + PUB_WIDGET, $('.' + PUB_WIDGET + ' option:selected').val(), data.meta.facets[i].details);
       
     } else if (data.meta.facets[i].facet === 'document' && data.meta.facets[i].details) { // document (subject/year)
       //
@@ -347,20 +271,8 @@ function PopulateFacets(data, listDef) {
       //
       // Now load the list with the elements
       //
-      PopulateList('.' + listDef.DOC_WIDGET, $('.' + listDef.DOC_WIDGET + ' option:selected').val(), data.meta.facets[i].details);
+      PopulateList('.' + DOC_WIDGET, $('.' + DOC_WIDGET + ' option:selected').val(), data.meta.facets[i].details);
       
-    } else 
-    if (data.meta.facets[i].facet === 'section' && data.meta.facets[i].details) {
-      //
-      // sort the sections by seq
-      //
-      data.meta.facets[i].details.sort(function(a,b) {
-        return a.data.seq - b.data.seq;
-        });
-      //
-      // Now load the list with the elements
-      //
-      PopulateList('.section', $('.section option:selected').val(), data.meta.facets[i].details);
     }
   }
 }
@@ -368,10 +280,6 @@ function PopulateFacets(data, listDef) {
 // lockLabels - disable the label options so you can't go from a publication name back to "publication" which has no GUID (etc.)
 //
 function lockLabels() {
-  if ($('.authority').prop('selectedIndex') > 0) $('.authority :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
-  if ($('.publication').prop('selectedIndex') > 0) $('.publication :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
-  if ($('.doc').prop('selectedIndex') > 0) $('.doc :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
-  if ($('.section').prop('selectedIndex') > 0) $('.section :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
   if ($('.dest_authority').prop('selectedIndex') > 0) $('.dest_authority :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
   if ($('.dest_publication').prop('selectedIndex') > 0) $('.dest_publication :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
   if ($('.dest_doc').prop('selectedIndex') > 0) $('.dest_doc :nth-child(1)').attr('disabled', 'disabled'); // disable the "label" option
@@ -407,96 +315,6 @@ function PopulateList(list, select, values) {
   $(list).prop('disabled', false); // re-enable the list
 
   lockLabels();
-}
-//
-// openLazyNode - open this branch in the standards tree when it is selected. If the data hasn't been loaded yet,
-//    call AB Connect to get the data.
-//
-//    event - event in question (open)
-//    nodes - node tree
-//    node - selected node to open
-//    hasChildren - true of the selected node already has children
-//
-function openLazyNode(event, nodes, node, hasChildren) {
-  if (hasChildren) { // don't call ajax if lazy node already has children
-    return false;
-  }
-  //
-  // construct the URL to pull the children
-  //
-  var sourceUrl = STANDARDS_URL;
-  //
-  // if there is a parent node, add it's value to the query so it becomes the start point
-  //
-  if (node.guid) {
-    sourceUrl += "?filter[standards]=(" + encodeURIComponent("parent.id eq '" + node.guid + "'") + ")"; // start from this standard
-  } else { // no parent, grab the top of the section
-    sourceUrl += "?filter[standards]=(" + encodeURIComponent("level eq '1' AND section.guid eq '" + gSectionGUID + "'") + ")"; // start from the top
-  }
-  sourceUrl += '&fields[standards]=statement,number,children,seq';
-
-  logCall(sourceUrl); // dump URLs to the console to make it easy to see the calls when learning the API
-  
-  sourceUrl += authenticationParameters(); // do the auth bit
-  //
-  // request the data
-  //
-  $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      PopulateNode(data, node);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    }
-  );
-}
-//
-// PopulateNode - function to load the branch in the tree with the children that came back from the AJAX call
-//
-//    data - AJAX response
-//    node - node being populated
-//
-function PopulateNode(data, node) {
-  //
-  // sort the standards by seq
-  //
-  data.data.sort(function(a,b) {
-    return a.attributes.seq - b.attributes.seq
-  });
-  //
-  // loop over the responses
-  //
-  for (var i = 0; i < data.data.length; i++) {
-    
-    var standard = data.data[i]; // grab the data for this particular standard
-    //
-    // build the node
-    //
-    var child = {};
-    var number = "";
-    if (standard.attributes.number.raw) {
-      number = standard.attributes.number.raw;
-    }
-    child.text = number + " " + standard.attributes.statement.descr; // The tree entry label is th standard number + descr
-    //
-    // set the folder status based on the children count
-    //
-    child.isFolder = standard.relationships.children.data.length > 0; // has children
-    child.isLazy = child.isFolder;
-    child.guid = standard.id;
-    child.isExpanded = false;
-
-    gEasyTree.addNode(child, node.id); // add the node to the tree
-  }
-
-  gEasyTree.rebuildTree();
 }
 //
 // selectRelatedStandard - respond to a selection in the relationshipList
@@ -548,107 +366,84 @@ function selectRelatedStandard() {
   gActiveRelatedItem = currentItem; // remember where we are
 }
 //
-// stateChanged - make note of a change in state of the standards tree. If the change in state is a new standard selected,
-//    we retrieve the standards and display the details.
-//
-//    nodes - complete list of nodes
-//    nodesJSON - ditto (stored as JSON)
+// standardSelected - make note of a change in the current standard. We retrieve the standard and display the details.
+//    currentStandard - the current selected GUID
 //
 //  Uses:
-//    gActiveNode - last node selected.  If it hasn't changed, we don't do anything.  If it changed,
-//      we display the standards data in a pop-up. Otherwise do nothing.
+//    gActiveStandard - last standard selected.  If it hasn't changed, we don't do anything.  If it changed,
+//      we display the standards data in the details. Otherwise do nothing.
 //
-var gActiveNode = null;
+var gActiveStandard = null;
 var gCurrentSourceStandard = null;
-function stateChanged(nodes, nodesJson) {
-  var currentNode = getActiveNode(nodes);
+function standardSelected(currentStandard) {
   //
-  // if something was found, update the details section
+  // They selected a new node
   //
-  if (currentNode) {
+  if (gActiveStandard != currentStandard) {
     //
-    // They selected a new node
+    // construct the URL to pull the details
     //
-    if (gActiveNode != currentNode) {
-      //
-      // construct the URL to pull the details
-      //
-      var sourceUrl = STANDARDS_URL + '/' + currentNode.guid +
-        '?fields[standards]=statement,section,document,education_levels,disciplines,number,parent,utilizations';
-      if (gTopicsLicensed) sourceUrl += ',topics,concepts,key_ideas&include=topics,concepts'; // include the topics stuff if topics is licensed
+    var sourceUrl = STANDARDS_URL + '/' + currentStandard +
+      '?fields[standards]=statement,section,document,education_levels,disciplines,number,parent,utilizations';
+    if (gTopicsLicensed) sourceUrl += ',topics,concepts,key_ideas&include=topics,concepts'; // include the topics stuff if topics is licensed
 
-      logCall(sourceUrl); // dump URLs to the console to make it easy to see the calls when learning the API
-  
-      sourceUrl += authenticationParameters(); // do the auth bit
-      //
-      // request the data
-      //
-      $.ajax(
+    logCall(sourceUrl); // dump URLs to the console to make it easy to see the calls when learning the API
+
+    sourceUrl += authenticationParameters(); // do the auth bit
+    //
+    // request the data
+    //
+    $.ajax(
+      {
+      url: sourceUrl,
+      crossDomain: true,
+      dataType: 'json',
+      success: function(data,status)
         {
-        url: sourceUrl,
-        crossDomain: true,
-        dataType: 'json',
-        success: function(data,status)
-          {
-          PopulateDetails(data, 'Details of Source Standard');
-          //
-          // Retain the data so we can use it to lookup related standards when appropriate.
-          // Then clear out the settings that the system uses to track if it is current on the siblings list so it forces an update of the list
-          //
-          gCurrentSourceStandard = data;
-          //
-          // update the grade selection if the filter is active
-          //
-          updateGrades();
-          //
-          // clear out the memory of the siblings list selection so it starts fresh
-          //
-          forceSiblingRefresh();
-          
-          gActiveNode = currentNode; // remember where we are
-          },
-        error: function(req, status, error)
-          {
-          alert(error);
-          }
+        PopulateDetails(data, DETAILS_LABEL);
+        //
+        // Retain the data so we can use it to lookup related standards when appropriate.
+        // Then clear out the settings that the system uses to track if it is current on the siblings list so it forces an update of the list
+        //
+        gCurrentSourceStandard = data;
+        //
+        // update the grade selection if the filter is active
+        //
+        updateGrades();
+        //
+        // clear out the memory of the siblings list selection so it starts fresh
+        //
+        forceSiblingRefresh();
+        
+        gActiveStandard = currentStandard; // remember where we are
+        },
+      error: function(req, status, error)
+        {
+        alert(error);
         }
-      );
-    }
+      }
+    );
   }
 }
 //
-// getActiveNode - retrieve the selected node
-//    NOTE: this is a recursive function
+// noStandardSelected - If the user deselects the standard, clear the details and relationships
 //
-//  Arguments:
-//    nodes - complete list of nodes
+//  Uses:
+//    gActiveStandard - last standard selected.  If it hasn't changed, we don't do anything.  If it changed,
+//      we display the standards data in the details. Otherwise do nothing.
 //
-// Returns: the currently active node or null if none is found
-//
-function getActiveNode(nodes) {
+function noStandardSelected() {
   //
-  // loop over the list of nodes
+  // Reset the selection state of everything
   //
-  for (var i = 0; i < nodes.length; i++) {
-    
-    var node = nodes[i];
-    
-    if (node.isActive) { // found the active node - retrun it
-      return node;
-    }
-    //
-    // This node has children - recurse to check the list of children
-    //
-    if (node.children && node.children.length > 0) {
-      
-      node = getActiveNode(node.children);
-      
-      if (node) {
-        return node;
-      }
-    }
-  }
-  return null; //nothing found - return
+  gActiveStandard = null;
+  gCurrentSourceStandard = null;
+  gLastStandardID = null;
+  gActiveRelatedItem = null;
+  
+  $('.detailsTitle h1').text(DETAILS_LABEL); // reset the label
+  $('.details').empty(); // clear the standard details
+  $( "select.relationshipList").empty(); // clear the relationship list
 }
 //
 // PopulateDetails - load the details section of the screen with the selected node details
@@ -862,49 +657,6 @@ function PopulateSiblings(data) {
   }
 }
 //
-// determineListDef - determine which set of lists we are working with and return the names related to this set
-//
-//  Arguments:
-//    listName - the name of one of the lists
-//
-//  Response: object.
-//        bSource - true if we are dealing with the source standards lists
-//        AUTH_WIDGET - name of the related widgets in the HTML
-//        PUB_WIDGET
-//        DOC_WIDGET
-//
-function determineListDef(listName) {
-  var start = listName.substr(0,4);
-  return getListDef(start != 'dest');
-}
-//
-// getListDef - determine which set of lists we are working with and return the names related to this set
-//
-//  Arguments:
-//    bSource - true if we are talking about the source standard lists
-//
-//  Response: object.
-//        bSource - true if we are dealing with the source standards lists
-//        AUTH_WIDGET - name of the related widgets in the HTML
-//        PUB_WIDGET
-//        DOC_WIDGET
-//
-function getListDef(bSource) {
-  var obj = {};
-  obj.bSource = bSource; // bSource is true if the lists in question are the source standard lists
-  
-  if (obj.bSource) {
-    obj.AUTH_WIDGET = "authority";
-    obj.PUB_WIDGET = "publication";
-    obj.DOC_WIDGET = "doc";
-  } else {
-    obj.AUTH_WIDGET = "dest_authority";
-    obj.PUB_WIDGET = "dest_publication";
-    obj.DOC_WIDGET = "dest_doc";
-  }
-  return (obj);
-}
-//
 // checkTopicsLicenseLevel - see if we can request concepts/topics
 //
 function checkTopicsLicenseLevel() {
@@ -943,7 +695,7 @@ function checkTopicsLicenseLevel() {
   );
 }
 //
-// checkTopicsLicenseLevel - see if we can request concepts/topics
+// checkRelationshipLicenseLevel - see if we can request relationships
 //
 function checkRelationshipLicenseLevel() {
   //
@@ -979,6 +731,7 @@ function checkRelationshipLicenseLevel() {
 //
 // init - if we are here, it is all good - get started 
 //
+var gWidgetInit = false;
 function init() {
   //
   // if relationships are disallowed - hide all things relationship related
@@ -994,7 +747,33 @@ function init() {
     var option = $('select.relationship option').filter(function () { return $(this).html() == "Topic"; });
     option.attr('disabled', 'disabled');
   }
-  loadFacets('authority');
+  //
+  // Load the standards browser
+  //
+  if (gWidgetInit) {
+    $('.sourceStandard').standardsBrowser('destroy'); // this isn't strictly necessary, but we want to make sure it is cleared if someone changes the auth credentials and re-initializes
+  }
+  $('.sourceStandard').standardsBrowser({
+    authCredentials: {
+      ID: gPartnerID,
+      signature: gSignature,
+      expires: gAuthExpires
+    },
+//    selectMode: 'single',
+//    enableDoubleClick: false,
+    singleSelectMode: true,
+    onStandardSelect: function(event, GUID){
+      standardSelected(GUID);
+    },
+    onStandardDeselect: function(event, GUID){
+      noStandardSelected();
+    },
+    onError: function(event, message){
+      alert(message);
+    }
+  });
+  gWidgetInit = true;
+  
   loadFacets('dest_authority');
 }
 //
@@ -1018,7 +797,7 @@ function authenticate() {
     partnerKey.length === 0) {
     return;
   }
-  gAuthExpires = Math.floor(Date.now() / 1000) + 86400; // 1 day lifespan (in seconds) note that "gAuthExpires" is in seconds, not milliseconds
+  gAuthExpires = Math.floor(Date.now() / 1000) + 3600; // 1 day lifespan (in seconds) note that "gAuthExpires" is in seconds, not milliseconds
   //
   // Build the signature
   //

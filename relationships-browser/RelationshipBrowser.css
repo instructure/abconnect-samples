@@ -7,7 +7,7 @@ body {
 }
 h1 {
   font-family: Roboto;
-  margin-bottom: 5px;
+  margin-bottom: 0;
 }
 h2 {
   font-family: Roboto;
@@ -27,6 +27,11 @@ h2 {
 .content {
   width: 600px;
   display: table-cell;
+}
+.instructions {
+  font-family: Roboto;
+  font-size: 10pt;
+  margin-bottom: 15px;
 }
 .authID {
   width: 600px;
@@ -64,6 +69,13 @@ h2 {
 .source {
   margin: 15px;
 }
+.sourceStandard {
+  width: 800px;
+  height: 600px;
+  border-style: dotted;
+  border-width: 3px;
+  border-color: #8CBBE9;
+}
 .relationship {
 
 }
@@ -94,10 +106,11 @@ h2 {
 .details {
   width: 600px;
   overflow-x: auto;
-  height: 800px;
-    overflow-y: auto;
+  height: 890px;
+  overflow-y: auto;
   margin-top: 5px;
   background-color: #f7f7f7;
+  white-space: pre-wrap;
 }
 .filterGradeLabel {
   display: inline;
@@ -106,18 +119,6 @@ h2 {
 }
 .filterGrade {
   margin-left: 10px;
-}
-.authority {
-  width: 20%;
-}
-.publication {
-  width: 20%;
-}
-.doc {
-  width: 20%;
-}
-.section {
-  width: 20%;
 }
 .dest_authority {
   width: 20%;
