@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 const fs = require('fs')
 const mime = require('mime')
 const AWS = require('aws-sdk')
