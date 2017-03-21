@@ -3,9 +3,9 @@ const mime = require('mime')
 const AWS = require('aws-sdk')
 const crypto = require('crypto')
 
-const CLOUDFRONT_DISTRIBUTION_ID = 'E274ZI3E859MMN'
+const CLOUDFRONT_DISTRIBUTION_ID = process.env.CLOUDFRONT_DISTRIBUTION_ID
 const CLOUDFRONT_NAMESPACE = 'DEMOS'
-const S3_BUCKET = 'ab-widgets.academicbenchmarks'
+const S3_BUCKET = process.env.S3_BUCKET
 const S3_ROOT = '/ABConnect/v4/'
 const S3_ACL = 'public-read'
 const S3_CACHECONTROL = 's-maxage=3600, max-age=3600, public, must-revalidate, proxy-revalidate'
@@ -20,7 +20,7 @@ let s3 = new AWS.S3()
 */
 let action = process.argv[2] || 'sync';
 
-let remoteIgnoreList = ['dist']
+let remoteIgnoreList = ['dist','fieldDefaults.js']
 let localIgnoreList = fs.readFileSync('.s3ignore').toString().split("\n").map(
   file => file.replace(/\/$/,'')
 )
