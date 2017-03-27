@@ -759,9 +759,9 @@ function init() {
       signature: gSignature,
       expires: gAuthExpires
     },
-//    selectMode: 'single',
-//    enableDoubleClick: false,
-    singleSelectMode: true,
+    selectMode: 'single',
+    enableDoubleClick: false,
+//    singleSelectMode: true,
     onStandardSelect: function(event, GUID){
       standardSelected(GUID);
     },
