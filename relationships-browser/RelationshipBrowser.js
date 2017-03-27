@@ -761,7 +761,6 @@ function init() {
     },
     selectMode: 'single',
     enableDoubleClick: false,
-//    singleSelectMode: true,
     onStandardSelect: function(event, GUID){
       standardSelected(GUID);
     },
