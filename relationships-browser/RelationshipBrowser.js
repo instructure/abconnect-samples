@@ -684,6 +684,10 @@ function checkTopicsLicenseLevel() {
               
             if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
               alert('Invalid partner ID or key.');
+              if (gWidgetInit) {
+                $('.sourceStandard').standardsBrowser('destroy'); // this isn't strictly necessary, but we want to make sure it is cleared if someone changes the auth credentials and re-initializes
+                gWidgetInit = false;
+              }
             } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') {
               // not going to do the Topic thing - let's check the relationships
               checkRelationshipLicenseLevel();
