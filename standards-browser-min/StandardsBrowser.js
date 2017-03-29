@@ -86,7 +86,8 @@ function init() {
     $('.standard').standardsBrowser('destroy'); // this isn't strictly necessary, but we want to make sure it is cleared if someone changes the auth credentials and re-initializes
   }
   $('.standard').standardsBrowser({
-    singleSelectMode: true,
+    selectMode: 'single',
+    enableDoubleClick: false,
     authCredentials: {
       ID: gPartnerID,
       signature: gSignature,
