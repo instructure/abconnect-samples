@@ -3,3 +3,4 @@ node_modules
 fieldDefaults*.js
 tag-cloud
 topics-browser
+*.bak
