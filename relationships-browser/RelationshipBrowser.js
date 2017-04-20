@@ -800,6 +800,12 @@ function authenticate() {
     partnerKey.length === 0) {
     return;
   }
+  //
+  // reset the license levels - we do this here so we pickup the proper settings when someone changes the user account
+  //
+  gTopicsLicensed = false;
+  gRelationshipsLicensed = false;
+
   gAuthExpires = Math.floor(Date.now() / 1000) + 3600; // 1 day lifespan (in seconds) note that "gAuthExpires" is in seconds, not milliseconds
   //
   // Build the signature
