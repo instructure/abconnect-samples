@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+var ASSERT = require('assert');
 var tools = require('./ABTools');
 tools.init();
 //tools.LOGGER().level = 'debug';
@@ -354,7 +355,7 @@ function RecordResults(cell, rowNumber) {
   var GUID = cell.value;
   tools.LOGGER().debug("Record Results: GUID: " + GUID);
 
-  tools.ASSERT(gResponses[GUID], 'Missing response in RecordResults');
+  ASSERT(gResponses[GUID], 'Missing response in RecordResults');
 
   if (!gResponses[GUID].source) { // no source ever came back
     //

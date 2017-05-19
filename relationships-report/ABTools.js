@@ -4,7 +4,6 @@ var RETRY = 5000; // delay to retry requests
 var TIMEOUT = 200000;
 var DELAY_INC = 10; // give us 10 milliseconds between each call
 var gDelay = 0; // initial delay
-var _assert;
 var _arguments;
 var _logger;
 var _client;
@@ -12,13 +11,13 @@ var _dumpError;
 var _spaceRequests;
 var _dumpResponse;
 var _fatalError;
+var _assert;
 const POST = 'POST';
 const PATCH = 'PATCH';
 const DELETE = 'DELETE';
 const GET = 'GET';
 
 module.exports = {
-ASSERT: function(){return _assert},
 arguments: function(){return _arguments},
 LOGGER: function(){return _logger},
 client: function(){return _client},
