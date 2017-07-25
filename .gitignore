@@ -4,3 +4,18 @@ fieldDefaults*.js
 tag-cloud
 topics-browser
 *.bak
+authentication/ABConnectAuthExample/ABConnectAuthExample/obj/
+relationships-report/data/
+.gitattributes
+authentication/ABConnectAuthExample/bin/
+authentication/ABConnectAuthExample/obj/
+authentication/ABConnectJavaAuthExample/.classpath
+authentication/ABConnectJavaAuthExample/.gitignore
+authentication/ABConnectJavaAuthExample/.project
+authentication/ABConnectJavaAuthExample/.settings/org.eclipse.jdt.core.prefs
+authentication/ABConnectVBAuthExample/bin/Debug/ABConnectVBAuthExample.exe.config
+authentication/ABConnectVBAuthExample/bin/
+authentication/ABConnectVBAuthExample/My Project/
+authentication/ABConnectVBAuthExample/obj/
+authentication/ABConnectCSharpAuthExample/bin/
+authentication/ABConnectCSharpAuthExample/obj/
