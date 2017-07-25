@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26430.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "ABConnectVBAuthExample", "ABConnectVBAuthExample\ABConnectVBAuthExample.vbproj", "{EAB452B7-D236-4F89-8523-304D48E7FEFA}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "ABConnectVBNetAuthExample", "ABConnectVBNetAuthExample.vbproj", "{EAB452B7-D236-4F89-8523-304D48E7FEFA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
