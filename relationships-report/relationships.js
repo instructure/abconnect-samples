@@ -38,6 +38,7 @@ if (!tools.arguments().auth || !tools.arguments().output || !inputFile || !tools
 }
 tools.LOGGER().debug('Auth: ' + tools.arguments().auth);
 tools.LOGGER().debug('Output: ' + tools.arguments().output);
+tools.LOGGER().debug('Relationship Type: ' + tools.arguments().type);
 tools.LOGGER().debug('Input: ' + inputFile);
 tools.LOGGER().debug('Document: ' + tools.arguments().document);
 //
@@ -99,7 +100,7 @@ function ProcessFile() {
   tools.LOGGER().info("Sources Processed: " + gTotalSource);
     //
     // If we are looking for topics we need to follow a different flow.  We can't jump directly into the sibling
-    // loookup because we need to retrieve all of the source calls back before we can start to find the related
+    // lookup because we need to retrieve all of the source calls back before we can start to find the related
     // siblings.
     //
   if (tools.arguments().type !== TOPIC) {
@@ -131,7 +132,11 @@ function GetSources(cell, rowNumber) {
   //
   // Request the data for this standard
   //
-  var sURL = BASE_URL + "/rest/v4/standards/" + GUID + "?fields[standards]=id,section,number,statement,origins,topics" + tools.arguments().auth;
+  var sURL = BASE_URL + "/rest/v4/standards/" + GUID + "?fields[standards]=id,section,number,statement,origins";
+  if (tools.arguments().type === TOPIC) {
+    sURL += ",topics";
+  }
+  sURL += tools.arguments().auth;
   tools.SpaceRequests(tools.GET, {}, sURL, ReceiveSources, GUID);
 }
 //
