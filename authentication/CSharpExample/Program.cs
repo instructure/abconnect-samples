@@ -28,7 +28,7 @@ class Program
       signature = Convert.ToBase64String(hmac.ComputeHash(messageBytes));
     }
 
-    var requestBuilder = new UriBuilder("http://api.academicbenchmarks.com/rest/v4/standards");
+    var requestBuilder = new UriBuilder("https://api.academicbenchmarks.com/rest/v4/standards");
     requestBuilder.Query = string.Format(
       "partner.id={0}&auth.signature={1}&auth.expires={2}&user.id={3}",
       WebUtility.UrlEncode(partnerID),
