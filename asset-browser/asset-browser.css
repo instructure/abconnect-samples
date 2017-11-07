@@ -1,0 +1,567 @@
+/* Roboto font from Google Fonts https://fonts.google.com/specimen/Roboto - license: http://www.apache.org/licenses/LICENSE-2.0 */
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+/* Roboto font from Google Fonts https://fonts.google.com/specimen/Roboto - license: http://www.apache.org/licenses/LICENSE-2.0 */
+
+.page {
+  width: 1200px;
+  display: table;
+  margin: auto;
+  background-color: white;
+}
+
+.struct {
+  display: table-row;
+}
+
+.panel.side-panel {
+  width: 256px;
+  float: left;
+  display: table-cell;
+  margin: calc(5% - 0px) 16px;
+}
+
+.results {
+  display: table-cell;
+  margin: calc(5% - 0px) 16px;
+  vertical-align: top;
+  float: left;
+}
+
+.clientID {
+  display: inline-block;
+  font-size: 12px;
+  margin-right: 16px;
+  vertical-align: middle;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.titleRow {
+  max-width: 520px;
+  white-space: nowrap;
+  display: flex;
+}
+
+.ABTitle {
+  display: inline-block;
+  font-weight: bold;
+  vertical-align: middle;
+  /*cursor: pointer;*/
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+summary .ABTitle {
+  width: 500px;
+}
+
+.ABSubject {
+  display: inline-block;
+  margin-right: 12px;
+}
+
+.ABGrade {
+  display: inline-block;
+}
+
+.my-bordered-list {
+  /* remove the side padding. we'll be placing it around the item instead. */
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.mdc-list {
+  width: 600px;
+  padding: 8px 16px;
+}
+
+.my-border-list.mdc-list--two-line.mdc-list .mdc-list-item {
+  /* Add the list side padding padding to the list item. */
+  padding: 0 16px;
+  /* Add a border around each element. */
+  border: 1px solid rgba(0, 0, 0, .12);
+}
+/* Ensure adjacent borders don't collide with one another. */
+.my-border-list.mdc-list--two-line.mdc-list .mdc-list-item:not(:first-child) {
+  border-top: none;
+}
+
+.msgs-list .mdc-list-item__end-detail {
+  width: auto;
+  height: auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+a.mdc-list-item__end-detail.material-icons {
+  color: #444;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0 0 0 24px;
+  vertical-align: middle;
+  margin-right: 0;
+}
+
+summary {
+  background-color: #f1f1f1;
+  color: #424242;
+  display: block;
+}
+
+summary:hover {
+  background-color: #f1f1f1;
+  color: #424242;
+}
+
+details[open] summary:hover{
+  background-color: #f1f1f1;
+  color: #424242;
+}
+details[open]:last-child {
+  margin-bottom:16px;
+}
+
+summary::after {
+  margin-right: 16px;
+}
+
+.mdc-select.authority {
+  font-size: 14px;
+}
+
+.mdc-select.publication {
+  font-size: 14px;
+}
+
+.mdc-select.doc {
+  font-size: 14px;
+}
+
+.mdc-form-field .mdc-checkbox {
+  vertical-align: middle;
+  width: 10px;
+  height: 10px;
+  flex: 0 0 10px;
+  padding: 10px;
+}
+
+.mdc-form-field .mdc-checkbox__background {
+  top: 8px;
+  left: 8px;
+}
+
+.content .mdc-form-field label {
+  vertical-align: middle;
+  font-size: 14px;
+  margin-left: -5px;
+}
+
+.content .mdc-form-field {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.content.more {
+  overflow-y: hidden;
+  padding: 0 24px
+}
+
+.textSearch {
+  margin: 16px;
+}
+.search {
+  width: 90%;
+  border-radius: 10px;
+  padding: 2px 2px 2px 10px;
+}
+.facets {
+  margin: 15px;
+}
+.types {
+}
+.subjects {
+}
+.strands {
+}
+.genres {
+}
+.grades {
+}
+.domains {
+}
+.ages {
+}
+.checks {
+  margin: 15px;
+}
+.checks label {
+  margin-right: 10px;
+  font-family: Roboto;
+  font-size: 11pt;
+  white-space: nowrap;
+  display: inline-block;
+}
+
+.morecontent span {
+    display: none;
+}
+.morelink {
+  display: block;
+  margin: 8px 20px 12px 12px;
+  text-align: right;
+  font-size: 14px;
+  text-decoration: none;
+  color: #1976d2;
+  padding-bottom: 12px;
+}
+
+.buttonArea {
+  /* align-content: center; */
+  /* width: 100%; */
+  display: flex;
+}
+
+.selectedStandards {
+  background-color: #f5f5f5;
+}
+
+.standardsChips {
+  overflow-x: auto;
+}
+
+.buttonArea .mdc-fab {
+  margin: 16px 0 0 auto;
+  background-color: #1675d2;
+}
+
+.conceptsCloud .chips {
+  margin-top: 16px;
+}
+
+.topicsCloud .chips {
+  margin-top: 16px;
+}
+
+.ui-helper-hidden-accessible {
+  display: none;
+}
+
+.disabledDiv {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+.resultsHeader {
+  display: flex;
+  margin: 0 16px;
+  visibility: hidden;
+}
+
+.resultsFooter {
+  display: flex;
+  margin: 0 16px;
+  visibility: hidden;
+}
+
+.firstPage {
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.prevPage {
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.nextPage {
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.lastPage {
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.pageSize {
+  display: inline-block;
+  vertical-align: middle;
+  margin: auto;
+}
+
+.pageSize a {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pageSize a:hover {
+  text-decoration: underline;
+}
+
+.page25 {
+  font-size: 150%;
+}
+
+.pageSize a.page25:hover {
+  text-decoration: none;
+}
+
+.position {
+  display: inline-block;
+  vertical-align: middle;
+  margin: auto;
+}
+
+/* Tag cloud */
+
+.common {overflow-y: hidden;}
+.tags ul{
+  margin:1em 0;
+  padding:.5em 10px;
+  text-align:center;
+  background-color: #f7f7f7;
+  background-size: auto 100%;
+  font-size: 10px;
+  }
+.tags li{
+  margin:0;
+  padding:0 2px;
+  list-style:none;
+  display:inline-block;
+  color:#3F51B5;
+  font-family: Roboto;
+  cursor: pointer;
+  }
+.tags li:hover{	
+  color:#8CBBE9;
+  }		
+
+/* Tag cloud */
+
+.basicList {
+  display: none;
+}
+
+.expandList {
+  display: none;
+  width: 600px;
+}
+
+.expandList details {
+  width: 600px;
+  margin: 8px 16px;
+}
+
+.gridList {
+  display: block;
+  width: 600px;
+}
+
+.viewList {
+  cursor: pointer;
+}
+
+.viewExp {
+  cursor: pointer;
+}
+
+.viewGrid {
+  color: #bdbdbd;
+}
+
+.viewLayout {
+  margin-right: 16px;
+}
+
+.gridList .mdc-grid-tile__secondary {
+  padding: 12px 16px;
+  background-color: rgba(66,66,66,.75);
+  overflow-y: hidden;
+}
+
+.gridList .mdc-grid-tile__support-text {
+  margin: 0;
+}
+
+.expandList .content {
+    margin-top: 16px;
+}
+
+.mdc-grid-tile {
+    --mdc-grid-list-tile-width: 196px;
+    width: 196px;
+  }
+
+.mdl-chip__text {
+  font-size: 10px;
+}
+
+.mdl-chip {
+  height: 25px;
+  border-radius: 10px;
+  line-height: 20px;
+}
+
+.mdl-chip__action .material-icons {
+  font-size: 20px;
+}
+
+.mdl-chip__action {
+  margin-top: 1px;
+}
+
+.credentials {
+  margin: 16px;
+}
+
+.mdc-grid-list--with-icon-align-end .mdc-grid-tile__icon {
+  right: 4px;
+  text-shadow: 2px 2px 5px #444;
+  cursor: pointer;
+}
+.mdc-grid-tile__support-text, .mdc-grid-tile__title {
+  margin: 0 16px 0 0;
+}
+
+.asset-attribute-title {
+  font-weight: bold;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+
+.asset-attribute-value-list {
+  margin-left: 0px;
+}
+
+.asset-attribute-value {
+  margin-left: 10px;
+  text-indent: -10px;
+  padding-left: 10px;
+}
+
+.standard {
+  display: inline-block;
+  margin-right: 7px;
+  padding-left: 10px;
+}
+.authority {
+  font-weight: bold;
+}
+.standardList {
+  margin-left: 10px;
+}
+.mdc-dialog__body--scrollable { /* override the max height */
+  max-height: 500px;
+}
+
+details  .authority {
+  font-size: .9rem;
+}
+
+details .asset-attribute-value {
+  font-size: .9rem;
+}
+
+details .asset-attribute-value-list {
+  font-size: .9rem;
+}
+
+.sampleItem .mdc-dialog__body {
+  height: 610;
+}
+
+
+
+.standardsSelect h1 {
+  font-family: Roboto;
+  margin: 0;
+}
+.standardsSelect h2 {
+  font-family: Roboto;
+  font-size: 14pt;
+  font-weight: bold;
+  display: inline;
+}
+.standardsSelect .page {
+  width: 1400px;
+  margin: 0 auto;
+  background-color: white;
+}
+.standardsSelect .struct {
+  display: table-row;
+}
+.standardsSelect .content {
+  width: 570px;
+  display: table-cell;
+}
+.standardsSelect .selectedArea {
+    width: 510px;
+    display: table-cell;
+    vertical-align: middle;
+    border: solid #bdbdbd;
+    border-width: thin;
+}
+.standardsSelect .arrowSpace {
+  display: table-cell;
+  vertical-align: middle;
+  padding-right: 10px;
+}
+.standardsSelect .source {
+  margin: 0 15px;
+}
+.standardsSelect .standard {
+  width: 700px;
+  height: 600px;
+  margin: 10px;
+}
+.standardsSelect .listTitle {
+  font-family: Roboto;
+}
+.standardsSelect .standardsList {
+  width: 480px;
+  overflow-x: auto;
+  height: 600px;
+}
+
+.standardsSelect .selectedArea li.mdc-list-item.selected {
+  background-color: rgba(25,118,210,.25);
+}
+.standardsSelect .selectedArea li.mdc-list-item {
+  line-height: normal;
+  font-size: 1.0rem;
+  padding: 5px 3px;
+}
+.standardsSelect .limitItem {
+  overflow-y: hidden;
+  height: 2.5rem;
+}
+
+.standardsSelect button.mdc-fab.material-icons {
+  margin-bottom: 24px;
+  background-color: #1675d2;
+}
+
+.standardsSelect button.mdc-fab.material-icons:disabled {
+  background-color: #e0e0e0;
+}
+
+.standardsSelect .mdc-dialog__surface {
+  max-width: 1400px;
+  width: 1340px;
+}
+
+.asset-attribute-value-list ul {
+  font-size: .875rem;
+  line-height: 1rem;
+  list-style: disc outside none;
+  padding-left: 23px;
+}
+.asset-attribute-value-list li {
+  margin-bottom: 5px;
+}
+li .asset-attribute-value {
+  margin-left: 0;
+}

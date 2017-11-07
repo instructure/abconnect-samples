@@ -1,0 +1,21 @@
+{
+  "name": "asset-browser",
+  "version": "1.0.0",
+  "description": "package.json collects the required material design complete packages",
+  "main": "asset-browser.js",
+  "dependencies": {
+    "@material/checkbox": "^0.3.7",
+    "@material/dialog": "^0.3.5",
+    "@material/fab": "^0.3.10",
+    "@material/grid-list": "^0.2.5",
+    "@material/list": "^0.2.11",
+    "@material/select": "^0.3.9",
+    "@material/textfield": "^0.3.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "George Menyhert",
+  "license": "ISC"
+}
