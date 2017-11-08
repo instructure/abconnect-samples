@@ -1,0 +1,16 @@
+{
+  "name": "authenticate",
+  "version": "1.0.0",
+  "description": "",
+  "main": "authenticate.js",
+  "dependencies": {
+    "winston": "^2.3.1",
+    "sync-request": "^4.1.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "George Menyhert (gmenyhert@certicasolutions.com)",
+  "license": "ISC"
+}

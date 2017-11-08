@@ -21,4 +21,17 @@ if (user_id) {
     queryString += '&user.id=' + encodeURIComponent(user_id);
 }
 
-console.log(queryString);
+console.log("Authentication parameters: " + queryString);
+
+var requester = require('sync-request');
+
+var response;
+var body;
+try {
+  response = requester('GET', 'https://api.academicbenchmarks.com/rest/v4/standards?' + queryString);
+  body = response.getBody('utf-8');
+} catch (e) {
+  console.log('' + e);
+}
+if (response) console.log("Response code: " + response.statusCode);
+if (body) console.log("Response body:\n" + body);
