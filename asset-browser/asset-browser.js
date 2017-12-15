@@ -33,7 +33,7 @@ function updateFacetCounts() {
         break;
       case 'topicsCloud':
       case 'conceptsCloud':
-        updateCloudCounts(group);
+        if (gTopicsConceptsLicensed) updateCloudCounts(group);
         break;
       case 'standardsAligned':
         updateStandardsAssetsCount(); // delegate the details to the align-widget module
@@ -196,7 +196,7 @@ function buildFilter(skip) {
       GUIDs += "'" + chips[i].getAttribute('value') + "',"
     }
     if (GUIDs) {
-      filter += "standards.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND standards.disposition eq 'accepted' AND ";
+      filter += "standards.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND standards.disposition in ('accepted', 'predicted') AND ";
     }
   }
   //
@@ -297,12 +297,12 @@ function init() {
   if (gTopicsConceptsLicensed) {
     $('.topicsCloud').show();
     $('.conceptsCloud').show();
+    initCloudCounts();
   } else {
     $('.topicsCloud').hide();
     $('.conceptsCloud').hide();    
   }
   identifyFacets();
-  initCloudCounts();
   loadAssets();
 }
 //

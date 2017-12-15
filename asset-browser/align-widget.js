@@ -79,10 +79,10 @@ function countStandardsRelatedAssets(GUID) {
     // pick apart the filter and add this single standard as part of the criteria
     //
     facetFilter = decodeURIComponent(facetFilter.substr(leadIn.length, facetFilter.length - leadIn.length - 1)); // strip off the leading and trailing stuff and then decode the string
-    facetFilter += " AND standards.id eq '" + GUID + "' AND standards.disposition eq 'accepted'";
+    facetFilter += " AND standards.id eq '" + GUID + "' AND standards.disposition in ('accepted', 'predicted')";
     facetFilter = leadIn + encodeURIComponent(facetFilter) + ')';
   } else { // there is no filter criteria
-    facetFilter = leadIn + encodeURIComponent("standards.id eq '" + GUID + "' AND standards.disposition eq 'accepted'") + ')';
+    facetFilter = leadIn + encodeURIComponent("standards.id eq '" + GUID + "' AND standards.disposition in ('accepted', 'predicted')") + ')';
   }
   var sVariableArguments = '?limit=0' + facetFilter;
   //
@@ -164,7 +164,8 @@ function initStandardsBrowser() {
   //
   var sFilter = buildFilter(['standardsAligned', 'standardsDoc']);
   if (sFilter) {
-    config.assetCountFilter = decodeURIComponent(sFilter.substr("&filter[assets]=".length, sFilter.length)); // the facet filter includes the full encoded filter string, but the widget wants just the decoded filter statement
+    var leadin = "&filter[assets]=(";
+    config.assetCountFilter = decodeURIComponent(sFilter.substr(leadin.length, sFilter.length-leadin.length-1)); // the facet filter includes the full encoded filter string, but the widget wants just the decoded filter statement
   }
 
   try {
