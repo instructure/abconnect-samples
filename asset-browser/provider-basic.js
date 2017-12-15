@@ -429,6 +429,16 @@ function populateAlignments(data, parentElement) {
     return;
   }
   //
+  // Loop over the alignments recording rejected standards
+  //
+  var badStandards = {};
+  for (var i=0; i < data.data.relationships.standards.data.length; i++) {
+    var standard = data.data.relationships.standards.data[i];
+    if (standard.meta.disposition === 'rejected') {
+      badStandards[standard.id] = true;
+    }
+  }
+  //
   // Loop over the alignments constructing the resulting object filtered by authority if appropriate.
   //      The alignment list is an object (Map) of objects. Each key in the map is the authority name and the value is a list of standards objects.  Each standard object
   //        has a number and descr property.
@@ -436,6 +446,7 @@ function populateAlignments(data, parentElement) {
   var alignments = {};
   for (var i=0; i < data.included.length; i++) {
     var standard = data.included[i];
+    if (badStandards.hasOwnProperty(standard.id)) continue; // skip rejected standards
     //
     // Handle the funny situations where we don't have proper authorities setup yet.
     //
