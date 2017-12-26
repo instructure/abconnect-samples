@@ -149,9 +149,9 @@ function getImageClass(asset, number) {
   
   if (asset.attributes.custom_attributes.image_url && asset.attributes.custom_attributes.image_url.length > 0 &&
       asset.attributes.custom_attributes.image_url[0] && asset.attributes.custom_attributes.image_url[0].length > 0) {  // if there is a proper definition in AB Connect, use it
-    imageUrl = `url(${asset.attributes.custom_attributes.image_url[0]}), url(img/certica.gif)`;
-  } else {                                                                  // fallback to the certica logo
-    imageUrl = `url(img/certica.gif)`;
+    imageUrl = `url(${asset.attributes.custom_attributes.image_url[0]}), url(img/logo.png)`;
+  } else {                                                                  // fallback to the logo
+    imageUrl = `url(img/logo.png)`;
   }
   var className = 'AB-asset-image-' + number;
   
