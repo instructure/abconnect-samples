@@ -59,8 +59,8 @@ function getBasicItem(asset, title, subjects, grades) {
   // add links to the content - but only if the link is available
   //
   var contentLink = '';
-  if (asset.attributes.content_url && asset.attributes.content_url.length) {
-    contentLink = `onclick="showContent('${asset.attributes.content_url[0]}');" style="cursor: pointer;"`;
+  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+    contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   return `
   <li class="mdc-list-item">
@@ -85,8 +85,8 @@ function getBasicItem(asset, title, subjects, grades) {
 //
 function getExpandItem(asset, title, subjects, grades) {
   var contentLink = '';
-  if (asset.attributes.content_url && asset.attributes.content_url.length) {
-    contentLink = `onclick="showContent('${asset.attributes.content_url[0]}');" style="cursor: pointer;"`;
+  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+    contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   //
   // support for Microsoft Edge which doesn't support the <details> tag yet
@@ -123,8 +123,8 @@ function getExpandItem(asset, title, subjects, grades) {
 //
 function getTileItem(asset, title, subjects, grades, i) {
   var contentLink = '';
-  if (asset.attributes.content_url && asset.attributes.content_url.length) {
-    contentLink = `onclick="showContent('${asset.attributes.content_url[0]}');" style="cursor: pointer;"`;
+  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+    contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   return `
     <li class="mdc-grid-tile">
@@ -147,9 +147,9 @@ function getTileItem(asset, title, subjects, grades, i) {
 function getImageClass(asset, number) {
   var imageUrl = '';
   
-  if (asset.attributes.image_url && asset.attributes.image_url.length > 0 &&
-      asset.attributes.image_url[0] && asset.attributes.image_url[0].length > 0) {  // if there is a proper definition in AB Connect, use it
-    imageUrl = `url(${asset.attributes.image_url[0]}), url(img/certica.gif)`;
+  if (asset.attributes.custom_attributes.image_url && asset.attributes.custom_attributes.image_url.length > 0 &&
+      asset.attributes.custom_attributes.image_url[0] && asset.attributes.custom_attributes.image_url[0].length > 0) {  // if there is a proper definition in AB Connect, use it
+    imageUrl = `url(${asset.attributes.custom_attributes.image_url[0]}), url(img/certica.gif)`;
   } else {                                                                  // fallback to the certica logo
     imageUrl = `url(img/certica.gif)`;
   }
@@ -186,7 +186,7 @@ function showContent(URL) {
 function getAssetFields() {
   
   if (gImageAndContentAvailable) { // image and content fields are available
-    return ',image_url,content_url';
+    return ',custom_attributes.image_url,custom_attributes.content_url';
   } else { 
     return '';
   }
@@ -196,6 +196,8 @@ function getAssetFields() {
 //  event - the onclick event
 //  guid - the GUID of the item in question
 //
+var gStandardsList; // list of aligned standards
+const STANDARDS_PAGE_SIZE = 100;
 function showAsset(event, guid) {
   if (!guid) return; // bail if there is no item ID to work from
   var asset = gAssets[guid]; // grab the asset definition from the cache
@@ -302,7 +304,8 @@ function showAsset(event, guid) {
   //
   // request the standards and add it to the display
   //
-  sourceUrl = ASSETS_URL + '/' + asset.id + "?include=standards&fields[assets]=standards&fields[standards]=statement,number,document";
+  gStandardsList = []; // clear the list of aligned standards
+  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(disposition in ('predicted','accepted'))&limit=" + STANDARDS_PAGE_SIZE;
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
     {
@@ -418,35 +421,104 @@ function populateTopics(data, parentElement) {
 //  data - response from the API call
 //  parentElement - the parent of the item we are updating.  This is particularly important for locating details sections in the expansion list
 //
+var gAlignmentDetailsCallCount;
+var gAlignmentDetailsMap;
 function populateAlignments(data, parentElement) {
-  var table = parentElement.find('.alignments-table .asset-attribute-value');
-  table.empty();
-
-  if (!data.included || !data.included.length) { // only process if there is some data
-    if (table.text() === '') {
-      table.text(NO_ALIGNMENTS); // since alignments are typically critical, we explicitly call it out if the alignments don't exist
-    }
+  //
+  // Record the IDs
+  //
+  for (var i=0; i < data.data.length; i++) {
+    gStandardsList.push(data.data[i].id); // build a list of standards
+  }
+  //
+  // if there are more standards in the paging, request the next page and exit
+  //
+  if (data.links.next && data.links.next.length > 0) {
+    var sourceUrl = data.links.next;
+    sourceUrl += authenticationParameters(); // add the auth stuff
+    $.ajax(
+      {
+      url: sourceUrl,
+      crossDomain: true,
+      dataType: 'json',
+      success: function(data,status)
+        {
+        populateAlignments(data, parentElement);
+        },
+      error: function(req, status, error)
+        {
+        alert(error);
+        }
+      });
+      
     return;
   }
+
+  var table = parentElement.find('.alignments-table .asset-attribute-value');
+
+  if (!gStandardsList.length) { // only process if there is some data
+      table.text(NO_ALIGNMENTS); // since alignments are typically critical, we explicitly call it out if the alignments don't exist
+    return;
+    }
   //
-  // Loop over the alignments recording rejected standards
+  // Loop over the alignments requesting the details for PAYLOAD_LIMIT standards at a time.  We can't simply request them all in one call because apache has a URL string length limitation
   //
-  var badStandards = {};
-  for (var i=0; i < data.data.relationships.standards.data.length; i++) {
-    var standard = data.data.relationships.standards.data[i];
-    if (standard.meta.disposition === 'rejected') {
-      badStandards[standard.id] = true;
+  gAlignmentDetailsCallCount = 0; // reset the number of pending calls
+  gAlignmentDetailsMap = {}; // clear the alignment map
+  const PAYLOAD_LIMIT = 100;
+  var standardsList = [];
+  for (var i=0; i < gStandardsList.length; i++) {
+    
+    standardsList.push(gStandardsList[i]); // build a list of standards
+    
+    if (standardsList.length >= PAYLOAD_LIMIT || // we have as many standards as we can handle or
+        (standardsList.length > 0 && i === (gStandardsList.length-1))) { // we have some standards left and we are at the end of the list
+      //
+      // convert the list to a single quoted CSV
+      //
+      var csvList = '';
+      for (var j=0; j<standardsList.length; j++) {
+        csvList += `'${standardsList[j]}',`;
+      }
+      csvList = csvList.substr(0,csvList.length-1); // trim the trailing comma
+      //
+      // request the standards and add it to the display
+      //
+      var sourceUrl = STANDARDS_URL + "?fields[standards]=statement,number,document&filter[standards]=(id in (" + csvList + "))&limit=" + PAYLOAD_LIMIT;
+      sourceUrl += authenticationParameters(); // add the auth stuff
+      $.ajax(
+        {
+        url: sourceUrl,
+        crossDomain: true,
+        dataType: 'json',
+        success: function(data,status)
+          {
+          renderAlignments(data, parentElement);
+          },
+        error: function(req, status, error)
+          {
+          alert(error);
+          }
+        });
+      
+      gAlignmentDetailsCallCount++; // note the pending call
+      standardsList = []; // clear the list and start again
     }
   }
+}
+//
+// renderAlignments - add the standards response to the alignment display
+//  data - response from the API call
+//  parentElement - the parent of the item we are updating.  This is particularly important for locating details sections in the expansion list
+//
+function renderAlignments(data, parentElement) {
   //
   // Loop over the alignments constructing the resulting object filtered by authority if appropriate.
   //      The alignment list is an object (Map) of objects. Each key in the map is the authority name and the value is a list of standards objects.  Each standard object
   //        has a number and descr property.
   //
-  var alignments = {};
-  for (var i=0; i < data.included.length; i++) {
-    var standard = data.included[i];
-    if (badStandards.hasOwnProperty(standard.id)) continue; // skip rejected standards
+  for (var i=0; i < data.data.length; i++) {
+    var standard = data.data[i];
     //
     // Handle the funny situations where we don't have proper authorities setup yet.
     //
@@ -456,38 +528,57 @@ function populateAlignments(data, parentElement) {
     } else {
       groupLabel = standard.attributes.document.publication.authorities[0].descr;
     }
-    if (!alignments.hasOwnProperty(groupLabel)) { // create authority
-      alignments[groupLabel] = [];
+    if (!gAlignmentDetailsMap.hasOwnProperty(groupLabel)) { // create authority
+      gAlignmentDetailsMap[groupLabel] = [];
+    }
+    //
+    // Compensate for blank numbers
+    //
+    var number='';
+    if (standard.attributes.number) {
+      if (standard.attributes.number.enhanced && standard.attributes.number.enhanced.length > 0) {
+        number = standard.attributes.number.enhanced;
+      } else if (standard.attributes.number.raw && standard.attributes.number.raw.length > 0) {
+        number = standard.attributes.number.raw;
+      }
     }
     //
     // Add this standard to the authority
     //
-    if (standard.attributes.number) {
-      alignments[groupLabel].push({
-        number: standard.attributes.number.enhanced,
+    if (number) {
+      gAlignmentDetailsMap[groupLabel].push({
+        number: number,
         descr: standard.attributes.statement.combined_descr}
         );
     } else {
-      alignments[groupLabel].push({
+      gAlignmentDetailsMap[groupLabel].push({
         number: standard.attributes.statement.combined_descr.substr(0,20) + "...",
         descr: standard.attributes.statement.combined_descr}
         );
     }
   }
+  gAlignmentDetailsCallCount--; // note that we received and processed the response
+  //
+  // if we are still waiting for responses, exit
+  //
+  if (gAlignmentDetailsCallCount > 0) return;
   
-  var authorities = Object.keys(alignments); // sort the authorities list alphabetically so it looks tidy
+  var authorities = Object.keys(gAlignmentDetailsMap); // sort the authorities list alphabetically so it looks tidy
   authorities.sort();
   //
   // loop over the authorities and display each standard on each authority
   //
+  var table = parentElement.find('.alignments-table .asset-attribute-value');
+  table.empty();
+
   for (var i=0; i<authorities.length; i++) {
     var authorityBody = '';
     authorityBody += '<div class="authority">' + authorities[i] + '</div><div class="standardList">';
     //
     // loop over the standards in this authority and add them to the list.
     //
-    for (var j=0; j<alignments[authorities[i]].length; j++) {
-      var standard = alignments[authorities[i]][j];
+    for (var j=0; j<gAlignmentDetailsMap[authorities[i]].length; j++) {
+      var standard = gAlignmentDetailsMap[authorities[i]][j];
       authorityBody += '<div class="standard" title="' + htmlEncode(standard.descr) + '">' + standard.number + '</div> ';
     }
     
