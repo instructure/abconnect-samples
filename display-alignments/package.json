@@ -1,0 +1,15 @@
+{
+  "name": "display-alignments",
+  "version": "1.0.0",
+  "description": "package.json collects the required material design complete packages",
+  "main": "display-alignments.js",
+  "dependencies": {
+    "@material/select": "^0.27.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "George Menyhert",
+  "license": "ISC"
+}
