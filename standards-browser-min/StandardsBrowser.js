@@ -33,7 +33,7 @@ function authenticate() {
   //
   // Build the signature
   //
-  var message = '' + gAuthExpires + "\n";
+  var message = '' + gAuthExpires + "\n\nGET";
   //
   // Build the token
   //
