@@ -1,7 +1,7 @@
 const SELECTED = 'selected';
 const STANDARDS_BROWSER_SELECTOR = '.standardsSelect .standard';
 var gStandardsBrowserConfig = {};
-var gStandardsList = {};
+var gWidgetStandardsList = {};
 //
 // selectStandards - When the standards button is pressed, load the browse widget
 //
@@ -29,14 +29,14 @@ function saveStandards() {
   var chipSpace = $('.standardsChips');
   chipSpace.empty();
   var chips = '';
-  for (var GUID in gStandardsList) {
-    if (!gStandardsList.hasOwnProperty(GUID)) continue;
+  for (var GUID in gWidgetStandardsList) {
+    if (!gWidgetStandardsList.hasOwnProperty(GUID)) continue;
     //
     // the line format is "<number> <statement>"
     //
     chips += `
     <span class="mdl-chip mdl-chip--deletable">
-        <span class="mdl-chip__text" title="${gStandardsList[GUID].statement}" value="${GUID}">${gStandardsList[GUID].number} </span>
+        <span class="mdl-chip__text" title="${gWidgetStandardsList[GUID].statement}" value="${GUID}">${gWidgetStandardsList[GUID].number} </span>
         <button type="button" class="mdl-chip__action" value="${GUID}" onclick="dropStandard(event);"><i class="material-icons">cancel</i></button>
     </span>`;
   }
@@ -52,7 +52,7 @@ function saveStandards() {
 //
 function dropStandard(ev) {
   
-  delete gStandardsList[ev.target.parentNode.value]; // remove the standard from the list used for filtering
+  delete gWidgetStandardsList[ev.target.parentNode.value]; // remove the standard from the list used for filtering
   ev.target.parentNode.parentNode.parentNode.removeChild(ev.target.parentNode.parentNode); // remove the chip.  I hate this notation.  :0
   
   updateDisplay();
@@ -180,13 +180,13 @@ function initStandardsBrowser() {
   //
   var list = $( "ul.standardsList");
   list.empty();
-  for (var GUID in gStandardsList) {
+  for (var GUID in gWidgetStandardsList) {
     
-    if (!gStandardsList.hasOwnProperty(GUID)) continue; // skip this item if it isn't a standard
+    if (!gWidgetStandardsList.hasOwnProperty(GUID)) continue; // skip this item if it isn't a standard
     
     var label = '';
-    if (gStandardsList[GUID].number) label += gStandardsList[GUID].number + ' ';
-    label += gStandardsList[GUID].statement; // build the visual element
+    if (gWidgetStandardsList[GUID].number) label += gWidgetStandardsList[GUID].number + ' ';
+    label += gWidgetStandardsList[GUID].statement; // build the visual element
 
     var item = `
         <li class="mdc-list-item" onclick="toggleStandard(event)" value="${GUID}">
@@ -319,9 +319,9 @@ function addStandardsToList(data) {
   for (var i=0; i < data.data.length; i++) {
     var standard = data.data[i];
     
-    if (gStandardsList.hasOwnProperty(standard.id)) continue; // skip this standard if it is already in the list
+    if (gWidgetStandardsList.hasOwnProperty(standard.id)) continue; // skip this standard if it is already in the list
     
-    gStandardsList[standard.id] = {
+    gWidgetStandardsList[standard.id] = {
       number: standard.attributes.number.enhanced,
       statement: standard.attributes.statement.descr
     }; // track the list of selected standards
@@ -365,7 +365,7 @@ function removeStandards() {
   // loop over the standards
   //
   for (var i=0; i < selection.length; i++) {
-    delete gStandardsList[selection[i].attributes['value'].value];
+    delete gWidgetStandardsList[selection[i].attributes['value'].value];
     selection.remove();
   }
   standardsChanged(); // update the buttons
