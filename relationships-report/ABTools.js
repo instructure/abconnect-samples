@@ -31,13 +31,36 @@ init: function() { // initialize the object
   _arguments = require('commander');
   _logger = require('winston');
   _logger.level = 'info';
-  var Client = require('node-rest-client').Client;
-  _client = new Client();
+  this.setClientMimes();
   
   _dumpError = this.DumpError;
   _spaceRequests = this.SpaceRequests;
   _dumpResponse = this.DumpResponse;
   _fatalError = this.FatalError;
+},
+//
+// setClientMimes - set the MIME types that the JSON client will parse.  If none are supplied, we go with the default set that are common with Certica APIs.
+//  types - a list of MIME types to include
+//
+setClientMimes: function(types) {
+  var Client = require('node-rest-client').Client;
+  var options = {
+                mimetypes: {
+                        json: ["application/json", "application/json;charset=utf-8", "application/vnd.collection+json", "application/vnd.collection+json;charset=utf-8"]
+                    }
+                };
+  if (types) {
+    options = {
+      mimetypes: {
+              json: types
+          }
+      };
+  }
+  _client = new Client(options);
+},
+
+setDelay: function(newDelay) { // change the default delay
+  DELAY_INC = newDelay;
 },
 //
 // SpaceRequests - make a request to the server after a delay
@@ -48,7 +71,6 @@ init: function() { // initialize the object
 //  callbackArgs - an array of arguments to pass to the callback - typically the first argument is a unique ID for the request
 //
 SpaceRequests: function(method, restArgs, URL, callback, callbackArgs) {
-  _logger.debug("Delay: " + gDelay);
   setTimeout(_sendRequest, gDelay, method, restArgs, URL, callback, callbackArgs);
   gDelay += DELAY_INC;
 },
@@ -133,12 +155,15 @@ FatalError: function (message) {
 //    callbackArgs - an array of arguments to pass to the callback - typically the first argument is a unique ID for the request
 //
 function _sendRequest(method, restArgs, URL, callback, callbackArgs) {
-  _logger.debug("URL: " + URL);
   //
   // merge node rest client configurations
   //
   restArgs = Object.assign(restArgs, {
-      requesConfig: { timeout: TIMEOUT },
+      requestConfig: {
+        timeout: TIMEOUT,
+        keepAlive: true,
+        keepAliveDelay: 1000
+      },
       responseConfig: { timeout: TIMEOUT }
       });
       
@@ -192,9 +217,13 @@ function _receiveError(error, recoverFunction, method, restArgs, URL, callback, 
     //
     // retry after a delay
     //
-    _logger.debug("Received a " + error.code + ". Trying again.");
     recoverFunction(method, restArgs, URL, callback, callbackArgs);
     return;
+  //
+  // Proxy or server offline
+  //
+  } else   if (error.code === 'ECONNREFUSED') {
+    _fatalError(`The connection was refused while attempting to make a call to ${URL}. Check to see if the proxy is running.`);
   //
   // other error - abort
   //
