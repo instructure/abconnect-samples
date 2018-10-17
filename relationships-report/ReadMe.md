@@ -44,7 +44,7 @@ in the output with a separate sibling on each line.
 ## Running the Script
 Sample call:
 ```sh
-node relationships.js template.xlsx -d 72263A0A-521A-11DD-A682-DF149DFF4B22 -a "&partner.id=devconnect01&&auth.signature=h456vUN1237XTzmm0%2BM1Klsnqu5iYdpLhFxLX6GaKAI4%3D&auth.expires=1482338683"
+node relationships.js template.xlsx -d 72263A0A-521A-11DD-A682-DF149DFF4B22 -a "&partner.id=devconnect01&auth.signature=h456vUN1237XTzmm0%2BM1Klsnqu5iYdpLhFxLX6GaKAI4%3D&auth.expires=1482338683"
 ```
 Basic help documentation:
 ```

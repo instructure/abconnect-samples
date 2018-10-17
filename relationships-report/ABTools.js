@@ -229,6 +229,9 @@ function _receiveError(error, recoverFunction, method, restArgs, URL, callback, 
   //
   } else {
     _dumpError(error);
+    _logger.error(`Method: ${method}`);
+    _logger.error(`URL: ${URL}`);
+    _logger.error(`REST args: ${JSON.stringify(restArgs)}`);
     _fatalError("REST call error. " + error);
   }
 }
