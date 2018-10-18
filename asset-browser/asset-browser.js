@@ -2,6 +2,7 @@ const HOST = 'https://api.academicbenchmarks.com'
 const STANDARDS_URL = HOST + "/rest/v4/standards";
 const TOPICS_URL = HOST + "/rest/v4/topics";
 const ASSETS_URL = HOST + "/rest/v4/assets";
+const ARTIFACTS_URL = HOST + "/rest/v4/artifacts";
 const CONCEPTS_URL = HOST + "/rest/v4/concepts";
 const PROCESSING = 'Processing...';
 const NO_ALIGNMENTS = 'No Alignments';

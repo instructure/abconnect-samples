@@ -238,6 +238,7 @@ function loadFacets() {
   //
   // request the data
   //
+  $('.overlay').show();
   $.ajax(
     {
     url: sourceUrl,
@@ -272,6 +273,7 @@ function populateFacets(data) {
       populateFacetList(KEY_FACETS[data.meta.facets[i].facet].class, data.meta.facets[i].details, KEY_FACETS[data.meta.facets[i].facet].checked);
     }
   }
+  $('.overlay').hide();
 }
 //
 // populateFacetList - function to load a single facet list in the UI
