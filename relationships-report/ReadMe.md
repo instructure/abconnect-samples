@@ -21,10 +21,12 @@ or they may be from the same authority with the goal being to examine how an old
 The script expects an Excel (xlsx) workbook that serves as input, as well as, the output template for the script.
 The workbook must contain two sheets.  The first sheet is the input.  The second sheet is the template for the output.
 The first sheet:
+
 + Row 1 is column headers (which are ignored by the script).
 + Column A contains the source standards GUIDs.
 
 The second sheet is the template for the output:
+
 + Row 1 is column headers (which the script leaves unaltered).
 + Column A is the source grade
 + Column B is the source number (enhanced)
@@ -70,10 +72,12 @@ based on standards in different regions without guaranteeing alignments).  Howev
 section on Activating Content in the AB Connect documentation for more information.
 
 ## Limitations
+
 1. There is no sorting or filtering of the source GUIDs.  The system writes them as it reads them.
 2. The script does no grade filtering.  I'll leave it as an exercise for the reader to modify the script to ensure the destination standards are in the same grade as the source standards.  It is trivial to add.
 
 ## Known Issues
+
 1. The node.js Excel module used in this script (exceljs) is extremely sensitive to the Excel file details.  I have not managed to determine the problem, but you often get some sort of generic error
 deep down in the exceljs code that says something about the color map not existing.  As long as you start with the template, it works.  Try not to make too many changes to the file as you
 populate the template with your data. If you start getting these errors, go back to the template and add data a little at a time, running the script each time to make sure you don't cause problems.
