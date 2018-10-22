@@ -7,6 +7,9 @@ const CONCEPTS_URL = HOST + "/rest/v4/concepts";
 const PROCESSING = 'Processing...';
 const NO_ALIGNMENTS = 'No Alignments';
 
+var gTopicsConceptsLicensed = false; // assume topics aren't licensed initially
+var gArtifactsLicensed = false; // assume artifacts aren't licensed initially
+
 jQuery.support.cors = true;
 // Microsoft Edge support - Polyfill the <details> tag
 $('details').details();
@@ -35,6 +38,10 @@ function updateFacetCounts() {
       case 'topicsCloud':
       case 'conceptsCloud':
         if (gTopicsConceptsLicensed) updateCloudCounts(group);
+        break;
+	      case 'artifacts':
+	      case 'artifactsList':
+          updateArtifactFaceting(); // update the artifact fact counts if there is anything to update
         break;
       case 'standardsAligned':
         updateStandardsAssetsCount(); // delegate the details to the align-widget module
@@ -235,6 +242,23 @@ function buildFilter(skip) {
     }
   }
   //
+  // if artifacts are selected and we aren't skipping them for this filter:
+  //
+  if ($.inArray( 'artifacts', skip) === -1) {
+    //
+    // now grab them from the tag cloud
+    //
+    chips = $('.artifacts .chips .mdl-chip__text');
+    GUIDs = '';
+    for (var i=0; i < chips.length; i++) {
+      var guid = chips[i].getAttribute('value');
+      GUIDs += "'" + guid + "',"
+    }
+    if (GUIDs) {
+      filter += "artifacts.artifact_type.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND ";
+    }
+  }
+  //
   // allow the provider to configure defaults if they'd like
   //
   filter += Provider.buildFilter();
@@ -265,7 +289,7 @@ function checkTopicsLicenseLevel() {
     dataType: 'json',
     success: function(data,status) {
         gTopicsConceptsLicensed = true; // note we can use topics and relationships as topics is a higher license level than relationships
-        init();
+        checkArtifactsLicenseLevel(); // check the artifact license now
       },
     error: function(req, status, error) {
         if (req.status === 401) { // authorization error - let's figure out what kind
@@ -275,13 +299,54 @@ function checkTopicsLicenseLevel() {
             if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
               alert('Invalid partner ID or key.');
             } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') {
-              init();
-            } else { // swallow an unexpected error and just init the app without topics and concepts
-              init();
+              checkArtifactsLicenseLevel(); // check the artifact license now
+            } else { // swallow an unexpected error and just check the artifact license now
+              checkArtifactsLicenseLevel(); // check the artifact license now
             }
-          } else init(); // swallow an unexpected error and just init the app without topics and concepts
+          } else checkArtifactsLicenseLevel(); // swallow an unexpected error and check the artifact license now
         } else {
           alert(`An error occured when attempting to check the Topics license. This is likely a timeout on the dev server. Status: ${status}. Error: ${error}`);
+          checkArtifactsLicenseLevel();
+        }
+      }
+    }
+  );
+}
+//
+// checkArtifactsLicenseLevel - see if we can request artifacts
+//
+function checkArtifactsLicenseLevel() {
+  //
+  // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
+  //
+  var artifactURL = ARTIFACTS_URL + '?limit=0' + authenticationParameters();
+  //
+  // request the data
+  //
+  $.ajax(
+    {
+    url: artifactURL,
+    crossDomain: true,
+    dataType: 'json',
+    success: function(data,status) {
+        gArtifactsLicensed = true; // note we can use artifacts
+        init();
+      },
+    error: function(req, status, error) {
+        if (req.status === 401) { // authorization error - let's figure out what kind
+          if (req.responseJSON.errors && 
+            req.responseJSON.errors[0].detail) {
+              
+            if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
+              alert('Invalid partner ID or key.');
+            } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Artifacts') {
+              init();
+            } else { // swallow an unexpected error and just init the app without artifacts
+              init();
+            }
+          } else init(); // swallow an unexpected error and just init the app without artifacts
+        } else {
+          alert(`An error occured when attempting to check the Artifacts license. This is likely a timeout on the dev server. Status: ${status}. Error: ${error}`);
           init();
         }
       }
@@ -302,6 +367,12 @@ function init() {
   } else {
     $('.topicsCloud').hide();
     $('.conceptsCloud').hide();    
+  }
+  if (gArtifactsLicensed) {
+    $('.artifacts').show();
+    updateArtifactFaceting(); // gather the artifact facets
+  } else {
+    $('.artifacts').hide();
   }
   identifyFacets();
   loadAssets();

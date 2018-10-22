@@ -566,6 +566,33 @@ li .asset-attribute-value {
   margin-left: 0;
 }
 
+.book-attribute-title {
+  font-weight: bold;
+  font-size: 1rem;
+  margin-top: 8px;
+}
+.book-attribute-value-list {
+  margin-left: 0px;
+}
+.book-attribute-value {
+  margin-left: 10px;
+  text-indent: -10px;
+  padding-left: 10px;
+}
+.book-artifact-title {
+  font-weight: bold;
+}
+.book-artifact-list {
+  padding-left: 20px;
+  padding-bottom: 10px;
+}
+.book-artifact-label {
+  display: inline-flex;
+  font-weight: bold;
+}
+.book-artifact-value {
+  display: inline;
+}
 .loader {
     border: 16px solid #f3f3f3; /* Light grey */
     border-top: 16px solid #3498db; /* Blue */
