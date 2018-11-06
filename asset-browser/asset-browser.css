@@ -445,13 +445,14 @@ summary::after {
 .standard {
   display: inline-block;
   margin-right: 7px;
-  padding-left: 10px;
+  padding-left: 0px;
 }
 .authority {
   font-weight: bold;
 }
 .standardList {
-  margin-left: 10px;
+  margin-left: 0px;
+  text-indent: 0px;
 }
 .mdc-dialog__body--scrollable { /* override the max height */
   max-height: 500px;
