@@ -7,6 +7,7 @@ const CONCEPTS_URL = HOST + "/rest/v4/concepts";
 const PROCESSING = 'Processing...';
 const NO_ALIGNMENTS = 'No Alignments';
 
+var gIncludePredicted = true; // flip this if you want just accepted
 var gTopicsConceptsLicensed = false; // assume topics aren't licensed initially
 var gArtifactsLicensed = false; // assume artifacts aren't licensed initially
 
@@ -204,7 +205,12 @@ function buildFilter(skip) {
       GUIDs += "'" + chips[i].getAttribute('value') + "',"
     }
     if (GUIDs) {
-      filter += "standards.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND standards.disposition in ('accepted', 'predicted') AND ";
+      //
+      // include the appropriate relationships in the search
+      //
+      var dispositionSearch = "standards.disposition in ('accepted', 'predicted')";
+      if (!gIncludePredicted) dispositionSearch = "standards.disposition EQ 'accepted'";
+      filter += "standards.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND " + dispositionSearch + " AND ";
     }
   }
   //

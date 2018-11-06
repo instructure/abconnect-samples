@@ -305,7 +305,9 @@ function showAsset(event, guid) {
   // request the standards and add it to the display
   //
   gStandardsList = []; // clear the list of aligned standards
-  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(disposition in ('predicted','accepted'))&limit=" + STANDARDS_PAGE_SIZE;
+  var dispositionSearch = "disposition in ('accepted', 'predicted')";
+  if (!gIncludePredicted) dispositionSearch = "disposition EQ 'accepted'";
+  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(" + dispositionSearch + ")&limit=" + STANDARDS_PAGE_SIZE;
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
     {

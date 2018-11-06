@@ -74,15 +74,20 @@ function updateStandardsAssetsCount() {
 function countStandardsRelatedAssets(GUID) {
   var facetFilter = buildFilter(['standardsAligned']);
   const leadIn = '&filter[assets]=(';
+  //
+  // include the appropriate relationships in the search
+  //
+  var dispositionSearch = "standards.disposition in ('accepted', 'predicted')";
+  if (!gIncludePredicted) dispositionSearch = "standards.disposition EQ 'accepted'";
   if (facetFilter) { // there is some other criteria
     //
     // pick apart the filter and add this single standard as part of the criteria
     //
     facetFilter = decodeURIComponent(facetFilter.substr(leadIn.length, facetFilter.length - leadIn.length - 1)); // strip off the leading and trailing stuff and then decode the string
-    facetFilter += " AND standards.id eq '" + GUID + "' AND standards.disposition in ('accepted', 'predicted')";
+    facetFilter += " AND standards.id eq '" + GUID + "' AND " + dispositionSearch;
     facetFilter = leadIn + encodeURIComponent(facetFilter) + ')';
   } else { // there is no filter criteria
-    facetFilter = leadIn + encodeURIComponent("standards.id eq '" + GUID + "' AND standards.disposition in ('accepted', 'predicted')") + ')';
+    facetFilter = leadIn + encodeURIComponent("standards.id eq '" + GUID + "' AND " + dispositionSearch) + ')';
   }
   var sVariableArguments = '?limit=0' + facetFilter;
   //
@@ -164,6 +169,12 @@ function initStandardsBrowser() {
   //
   var sFilter = buildFilter(['standardsAligned', 'standardsDoc']);
   if (sFilter) {
+    if (!gIncludePredicted) {
+      sFilter = sFilter.substr(0, sFilter.length-1) + " AND standards.disposition EQ 'accepted')";
+    } else {
+      sFilter = sFilter.substr(0, sFilter.length-1) + " AND standards.disposition in ('accepted', 'predicted'))";
+    }
+
     var leadin = "&filter[assets]=(";
     config.assetCountFilter = decodeURIComponent(sFilter.substr(leadin.length, sFilter.length-leadin.length-1)); // the facet filter includes the full encoded filter string, but the widget wants just the decoded filter statement
   }
