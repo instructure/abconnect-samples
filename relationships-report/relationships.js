@@ -157,10 +157,22 @@ function ReceiveSources(data, response, GUID) {
       tools.SpaceRequests(tools.GET, {}, BASE_URL + response.req.path, ReceiveSources, GUID);
     return;
   //
+  // invalid GUID
+  //
+  } else if (response.statusCode === 404) {
+    tools.FatalError("Invalid standards GUID: " + GUID);
+  //
+  // unlicensed GUID
+  //
+  } else if (response.statusCode === 403) {
+    var message = "Unlicensed standards GUID: " + GUID;
+    if (data.errors[0].detail) message += ". " + data.errors[0].detail;
+    tools.FatalError(message);
+  //
   // other error - abort
   //
   } else if (response.statusCode !== 200) {
-    tools.DumpResponse(response);
+    //tools.DumpResponse(response);
     tools.FatalError("ReceiveSources error response: " + response.statusCode + "-" + response.statusMessage);
   }
   
