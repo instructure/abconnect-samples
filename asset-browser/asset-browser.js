@@ -189,7 +189,7 @@ function buildFilter(skip) {
   var search = $('.search');
   if (search.val().length > 0) {
     var text = search.val().replace(/[^a-zA-Z0-9]+/g, ' '); // prevent naughtiness - only allow alphanums
-    filter += "query('" + text + "') AND "
+    filter += `(query(title,'${text}') OR query('${text}')) AND `; // search on title specifically as well as full text to boost title searches
   }
   //
   // if standards are selected and we aren't skipping them for this filter:
