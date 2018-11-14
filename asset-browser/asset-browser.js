@@ -10,6 +10,7 @@ const NO_ALIGNMENTS = 'No Alignments';
 var gIncludePredicted = true; // flip this if you want just accepted
 var gTopicsConceptsLicensed = false; // assume topics aren't licensed initially
 var gArtifactsLicensed = false; // assume artifacts aren't licensed initially
+var gShowTopics = true; // make the display of topics configurable
 
 jQuery.support.cors = true;
 // Microsoft Edge support - Polyfill the <details> tag
@@ -367,7 +368,10 @@ function init() {
   // show/hide the topics and concepts stuff based on licensing
   //
   if (gTopicsConceptsLicensed) {
-    $('.topicsCloud').show();
+    
+    if (gShowTopics) $('.topicsCloud').show();
+    else $('.topicsCloud').hide();
+    
     $('.conceptsCloud').show();
     initCloudCounts();
   } else {

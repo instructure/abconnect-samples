@@ -91,6 +91,8 @@ function updateCloudCounts(className) {
     //
     setConceptsWidgetToProcessing(PROCESSING);
   } else {
+    if (!gShowTopics) return;// skip wasteful processing if we aren't showing topics
+    
     facetName = 'topics';
     //
     // clear out the UI and lock it pending the update
