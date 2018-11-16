@@ -3,10 +3,11 @@
 var ASSERT = require('assert');
 var tools = require('./ABTools');
 tools.init();
+tools.setDelay(0);
 //tools.LOGGER().level = 'debug';
 
-var gResponses = new Object(); // global object to store the responses from the queries that store the source standards and their related destination standards
-var gTopics = new Object(); // global object to store topics and related standards - only used when --type is "topic"
+var gResponses = {}; // global object to store the responses from the queries that store the source standards and their related destination standards
+var gTopics = {}; // global object to store topics and related standards - only used when --type is "topic"
 
 const PEER = 'peer';
 const DERIVATIVE = 'derivative';
@@ -82,53 +83,34 @@ catch (error) {
 var Excel = require('exceljs');
 var gWorkbook = new Excel.Workbook();
 try {
-  gWorkbook.xlsx.readFile(inputFile).then(ProcessFile);
+  gWorkbook.xlsx.readFile(inputFile).then(processFile);
 } catch (e) {
   tools.FatalError("Unable to read the test file '" + inputFile + "'. Current working directory is " + process.cwd() + ". Error: " + e.message);
 }
 //
-// ProcessFile - do all of the work - we have a source/template file open in memory now.  Let's do the work.
+// processFile - do all of the work - we have a source/template file open in memory now.  Let's do the work.
 //
-var gSourceColumn;  // source GUID column
-var gWorksheet;
-function ProcessFile() {
-  gWorksheet = gWorkbook.getWorksheet(1); // We only process the first worksheet
-  gSourceColumn = gWorksheet.getColumn(1);  // source GUID column
+function processFile() {
+  var worksheet = gWorkbook.getWorksheet(1); // We only process the first worksheet
   
-  gSourceColumn.eachCell(GetSources);
-  tools.LOGGER().info("Sources iteration complete");
-  tools.LOGGER().info("Sources Processed: " + gTotalSource);
-    //
-    // If we are looking for topics we need to follow a different flow.  We can't jump directly into the sibling
-    // lookup because we need to retrieve all of the source calls back before we can start to find the related
-    // siblings.
-    //
-  if (tools.arguments().type !== TOPIC) {
-        gSourceColumn.eachCell(GetSiblingsByCell);
-        tools.LOGGER().info("Siblings iteration complete");
-        tools.LOGGER().info("Siblings Processed: " + gTotalSibling);
-    }
+  getNextSource(worksheet, 2); // start the source query - ignore the first row (header)
 }
 //
-// GetSources - loop over each cell in the column and retrieve the source definitions
-//    The first row is column headers (which we ignore).
-//  cell - the cell to process
-//  rowNumber - the number of the cell
+// getNextSource - loop over each cell in the column and retrieve the source definitions
+//  sheet - the worksheet with the source GUIDs in it
+//  rowNumber - the row we are on
 //
-var gPendingSourceQueryCount = 0; // number of source calls we have pending
-var gTotalSource = 0; // total number of calls we have to retrieve sources
-function GetSources(cell, rowNumber) {
+function getNextSource(sheet, rowNumber) {
+  var cell = sheet.getCell(`A${rowNumber}`);  
+  var GUID = cell.value; // source GUID
   
-  if (rowNumber === 1) {  // skip the header
+  if (!GUID) { // if the row is blank, that's the signal that we are done
+    tools.LOGGER().info("Source data retrieved from AB");
+    tools.LOGGER().info("Sources processed: " + Object.keys(gResponses).length);
+    getNextSibling(0); // start to gather the siblings
+    
     return;
   }
-  //
-  // Create a place to track the source standard and it's related siblings
-  //
-  var GUID = cell.value;
-  gResponses[GUID] = new Object();
-  gPendingSourceQueryCount++;
-  gTotalSource++;
   //
   // Request the data for this standard
   //
@@ -137,116 +119,115 @@ function GetSources(cell, rowNumber) {
     sURL += ",topics";
   }
   sURL += tools.arguments().auth;
-  tools.SpaceRequests(tools.GET, {}, sURL, ReceiveSources, GUID);
+  tools.SpaceRequests(tools.GET, {}, sURL, receiveSources, [GUID, sheet, rowNumber]);
 }
 //
-// ReceiveSources - process the source call response
+// receiveSources - process the source call response
 //    data - JSON
 //    response - raw data
+//    GUID - the AB GUID we are requesting
+//    sheet - GUID source worksheet object
+//    rowNumber - current processing row number
 //
-function ReceiveSources(data, response, GUID) {
+function receiveSources(data, response, [GUID, sheet, rowNumber]) {
   //
   // server overload
   //
   if (response.statusCode === 503 ||
+    response.statusCode === 408 ||
     response.statusCode === 504) {
     //
     // retry after a delay
     //
     tools.LOGGER().info("Received a " + response.statusCode + " when getting GUID " + GUID + ". Trying again.");
-      tools.SpaceRequests(tools.GET, {}, BASE_URL + response.req.path, ReceiveSources, GUID);
+      tools.SpaceRequests(tools.GET, {}, BASE_URL + response.req.path, receiveSources, [GUID, sheet, rowNumber]);
     return;
   //
   // invalid GUID
   //
   } else if (response.statusCode === 404) {
-    tools.FatalError("Invalid standards GUID: " + GUID);
+    tools.LOGGER().warn("Invalid standards GUID: " + GUID);
+    getNextSource(sheet, ++rowNumber); // Next!
+    return;
   //
   // unlicensed GUID
   //
   } else if (response.statusCode === 403) {
     var message = "Unlicensed standards GUID: " + GUID;
     if (data.errors[0].detail) message += ". " + data.errors[0].detail;
-    tools.FatalError(message);
+    tools.LOGGER().warn(message);
+    getNextSource(sheet, ++rowNumber); // Next!
+    return;
   //
   // other error - abort
   //
   } else if (response.statusCode !== 200) {
     //tools.DumpResponse(response);
-    tools.FatalError("ReceiveSources error response: " + response.statusCode + "-" + response.statusMessage);
+    tools.FatalError("receiveSources error response: " + response.statusCode + "-" + response.statusMessage);
+    return;
   }
   
   if (!data) {
     tools.FatalError("No Data when receiving sources");
+    return;
   }   
   //
-    // Record the standard's metadata description
-    //
+  // Record the standard's metadata description
+  //
+  gResponses[GUID] = {};
   gResponses[GUID].source = null;
   if (data && data.data) {
     gResponses[GUID].source = data.data;
   } else {
     tools.FatalError("No Data for source: " + GUID);
-  }
-    //
-    // If we are using topics to map from source to sibling, then build a list of unique topics to search.
-    //
-    if (tools.arguments().type === TOPIC) {
-        
-        for (var i=0; i < data.data.relationships.topics.data.length; i++) {
-            gTopics[data.data.relationships.topics.data[i].id] = new Object();
-        }
-    }
-  
-  gPendingSourceQueryCount--;
-  if (gPendingSourceQueryCount % 10 === 0) {
-    tools.LOGGER().info("Pending Sources: " + gPendingSourceQueryCount);
-  }
-  //
-  // We've retreived all of our results, map the results to the worksheet and save the results
-  //
-  if (gPendingSourceQueryCount === 0) {
-    
-    tools.LOGGER().info("Source data retrieved from AB");
-    
-    Finalize();
-  }
-}
-//
-// GetSiblingsByCell - loop over each cell in the column and retrieve the siblings
-//    The first row is column headers (which we ignore).
-//  cell - the cell to process
-//  rowNumber - the number of the cell
-//
-function GetSiblingsByCell(cell, rowNumber) {
-  
-  if (rowNumber === 1) {  // skip the header
     return;
   }
-    
-    GetSiblings(cell.value);
+  //
+  // If we are using topics to map from source to sibling, then build a list of unique topics to search.
+  //
+  if (tools.arguments().type === TOPIC) {
+      
+      for (var i=0; i < data.data.relationships.topics.data.length; i++) {
+          gTopics[data.data.relationships.topics.data[i].id] = {};
+      }
+  }
+  
+  if (Object.keys(gResponses).length % 10 === 0) {
+    tools.LOGGER().info(`Sources processed: ${Object.keys(gResponses).length}`);
+  }
+  
+  getNextSource(sheet, ++rowNumber); // Next!
 }
 //
-// GetSiblingsByTopics - loop over each topic in the list and retrieve the siblings
+// getNextSibling - loop over each source and retrieve the siblings
+//  index - the current item to search
 //
-function GetSiblingsByTopics() {
-    
-    for (var GUID in gTopics) {
-        if (gTopics.hasOwnProperty(GUID)) {
-            GetSiblings(GUID);
-        }
+var glistGuids;
+function getNextSibling(index) {
+  
+  if (!glistGuids) { // build a list of the source GUIDs
+  
+    if (tools.arguments().type === TOPIC) { // we use a different source GUID for topics - they are mapped and resolved in the output
+      glistGuids = Object.keys(gTopics);
+    } else { // use the input standards GUID as the source for everything else
+      glistGuids = Object.keys(gResponses);
     }
+  }
+  
+  if (index >= glistGuids.length) { // if we are finished with the list, wrap up
+    tools.LOGGER().info("Sibling data retrieved from AB");
+    Finalize();
+    return;
+  }
+  
+  getSibling(glistGuids[index], index); // lookup the siblings of this source GUID
 }
 //
-// GetSiblings - retrieve the siblings
+// getSibling - retrieve the siblings
 //  GUID - the GUID of the relating entity - could be origin, peer, peer_derivative or topic depending on the situation
+//  index - index we are currently processing
 //
-var gPendingSiblingQueryCount = 0; // how many sibling calls we are still waiting on
-var gTotalSibling = 0; // the total number of sibling sets we are processing
-function GetSiblings(GUID) {
-    
-  gPendingSiblingQueryCount++;
-  gTotalSibling++;
+function getSibling(GUID, index) {
   //
   // Request the standard related to this entity
   //
@@ -263,106 +244,88 @@ function GetSiblings(GUID) {
   }
   sURL += encodeURIComponent(" eq '" + GUID + "'") + ")" + tools.arguments().auth;
   
-  tools.SpaceRequests(tools.GET, {}, sURL, ReceiveSiblings, GUID);
+  tools.SpaceRequests(tools.GET, {}, sURL, receiveSiblings, [GUID, index]);
 }
 //
-// ReceiveSiblings - process the sibling call response
-//    data - JSON
-//    response - raw data
-//    GUID - the GUID of the standard whose siblings we want
+// receiveSiblings - process the sibling call response
+//  data - JSON
+//  response - raw data
+//  GUID - the GUID of the standard whose siblings we want
+//  index - index we are currently processing
 //
-function ReceiveSiblings(data, response, GUID) {
+function receiveSiblings(data, response, [GUID, index]) {
   //
   // server overload
   //
   if (response.statusCode === 503 ||
+    response.statusCode === 408 ||
     response.statusCode === 504) {
     //
     // retry after a delay
     //
     tools.LOGGER().info("Received a " + response.statusCode + " when getting siblings to GUID " + GUID + ". Trying again.");
-      tools.SpaceRequests(tools.GET, {}, BASE_URL + response.req.path, ReceiveSiblings, GUID);
+      tools.SpaceRequests(tools.GET, {}, BASE_URL + response.req.path, receiveSiblings, [GUID, index]);
     return;
   //
   // other error - abort
   //
   } else if (response.statusCode !== 200) {
     tools.DumpResponse(response);
-    tools.FatalError("ReceiveSiblings error response: " + response.statusCode + "-" + response.statusMessage);
+    tools.FatalError("receiveSiblings error response: " + response.statusCode + "-" + response.statusMessage);
+    return;
   }
 
   if (!data) {
     tools.FatalError("No Data when receiving siblings");
+    return;
   }   
   //
-    // record the siblings if this was not a topics crosswalk.  The topics crosswalk maps related standards to topics and the relationship to the
-    // source is resolved on output
-    //
-    if (tools.arguments().type === TOPIC) {
-        gTopics[GUID].siblings = null;
-        if (data && data.data) {
-            gTopics[GUID].siblings = data.data;
-        }
-    } else {
-        gResponses[GUID].siblings = null;
-        if (data && data.data) {
-            gResponses[GUID].siblings = data.data;
-        }
-    }
-    
-  gPendingSiblingQueryCount--;
-  if (gPendingSiblingQueryCount % 10 === 0) {
-    tools.LOGGER().info("Pending Siblings: " + gPendingSiblingQueryCount);
+  // record the siblings if this was not a topics crosswalk.  The topics crosswalk maps related standards to topics and the relationship to the
+  // source is resolved on output
+  //
+  if (tools.arguments().type === TOPIC) {
+      gTopics[GUID].siblings = null;
+      if (data && data.data) {
+          gTopics[GUID].siblings = data.data;
+      }
+  } else {
+      gResponses[GUID].siblings = null;
+      if (data && data.data) {
+          gResponses[GUID].siblings = data.data;
+      }
+  }
+  
+  if ((index+1) % 10 === 0) {
+    tools.LOGGER().info(`Siblings processed: ${index+1}`);
   }
   //
-  // We've retreived all of our results, map the results to the worksheet and save the results
+  // continue processing
   //
-  if (gPendingSiblingQueryCount === 0) {
-    
-    tools.LOGGER().info("Sibling data retrieved from AB");
-    
-    Finalize();
-  }
+  getNextSibling(++index);
 }
 //
 // Finalize - Confirm that all data has been received.  If it has, record the results
 //
 function Finalize() {
-  //
-    // If we've requested both the source and the sibling data and we have it all, wrap up
-    //
-  if (gPendingSourceQueryCount === 0 &&
-    gPendingSiblingQueryCount === 0 &&
-        gTotalSibling > 0) { // is false if we haven't started the sibling query yet (topics - see below)
   
-    tools.LOGGER().info("Recording results");
-    gSourceColumn.eachCell(RecordResults);
-    
-    tools.LOGGER().info("Saving the file");
-    try {
-      gWorkbook.xlsx.writeFile(tools.arguments().output).then(function() {
-          tools.LOGGER().info("File saved");
-      });
-    } catch (e) {
-      tools.FatalError("Unable to write the output file '" + tools.arguments().output + "'. Current working directory is " + process.cwd() + ". Error: " + e.message);
-    }
+  tools.LOGGER().info("Recording results");
+  var worksheet = gWorkbook.getWorksheet(1); // We only process the first worksheet
+  worksheet.getColumn(1).eachCell(recordResults);
+  
+  tools.LOGGER().info("Saving the file");
+  try {
+    gWorkbook.xlsx.writeFile(tools.arguments().output).then(function() {
+        tools.LOGGER().info("File saved");
+    });
+  } catch (e) {
+    tools.FatalError("Unable to write the output file '" + tools.arguments().output + "'. Current working directory is " + process.cwd() + ". Error: " + e.message);
+  }
   tools.LOGGER().info("Done");
-    //
-    // If we are doing topic based mappings and we have all of the source standards (and therefore all of the related topics), we can start
-    // to lookup the related siblings.
-    //
-  } else if (tools.arguments().type === TOPIC &&
-        gPendingSourceQueryCount === 0) {
-        
-        GetSiblingsByTopics();
-        tools.LOGGER().info("Siblings iteration complete");
-        tools.LOGGER().info("Siblings Processed: " + gTotalSibling);
-    }
 }
 //
-// RecordResults - Record the results in the Notes column of the worksheet
+// recordResults - Record the results in the Notes column of the worksheet
 //
-function RecordResults(cell, rowNumber) {
+function recordResults(cell, rowNumber) {
 
   if (rowNumber === 1) {  // skip the header
     return;
@@ -372,7 +335,7 @@ function RecordResults(cell, rowNumber) {
   var GUID = cell.value;
   tools.LOGGER().debug("Record Results: GUID: " + GUID);
 
-  ASSERT(gResponses[GUID], 'Missing response in RecordResults');
+  if (!gResponses[GUID]) return; // this was an invalid or unlicensed GUID - skip
 
   if (!gResponses[GUID].source) { // no source ever came back
     //
