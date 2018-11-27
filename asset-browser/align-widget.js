@@ -32,11 +32,22 @@ function saveStandards() {
   for (var GUID in gWidgetStandardsList) {
     if (!gWidgetStandardsList.hasOwnProperty(GUID)) continue;
     //
+    // Make sure the number is valid and readable
+    //
+    var number = gWidgetStandardsList[GUID].number;
+    if (!number) {
+      var limit = 10;
+      if (gWidgetStandardsList[GUID].statement.length <= limit)
+        limit = gWidgetStandardsList[GUID].statement.length - 1;
+      
+      number = gWidgetStandardsList[GUID].statement.substr(0,limit);
+    }
+    //
     // the line format is "<number> <statement>"
     //
     chips += `
     <span class="mdl-chip mdl-chip--deletable">
-        <span class="mdl-chip__text" title="${gWidgetStandardsList[GUID].statement}" value="${GUID}">${gWidgetStandardsList[GUID].number} </span>
+        <span class="mdl-chip__text" title="${gWidgetStandardsList[GUID].statement}" value="${GUID}">${number} </span>
         <button type="button" class="mdl-chip__action" value="${GUID}" onclick="dropStandard(event);"><i class="material-icons">cancel</i></button>
     </span>`;
   }
