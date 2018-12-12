@@ -13,6 +13,7 @@ const PEER = 'peer';
 const DERIVATIVE = 'derivative';
 const PEER_DERIVATIVE = 'peer_derivative';
 const TOPIC = 'topic';
+const ORIGIN = 'origin';
 
 const BASE_URL = 'https://api.academicbenchmarks.com';
 //
@@ -24,9 +25,8 @@ tools.arguments()
   .option('-a, --auth <authentication string>', 'The query string of the authentication information starting with &.  It must contain a value for partner.id, ' +
             'auth.signature and auth.expires.  The values must be properly URI encoded.  It may optionally include a value for user.id. Including authentication details is required.')
   .option('-d, --document <GUID>', 'The GUID of the destination document. Required.')
-  .option('-t, --type <relationship type>', 'The type of relationship you want to walk.  Options: peer, derivative, peer_derivative, topic. Default: peer.',
-            /^(peer|derivative|peer\_derivative|topic)$/, 'peer')
-  .option('-o, --output <output file>', 'The output filename. Default: out.xlsx', 'out.xlsx')
+  .option('-t, --type <relationship_type>', 'The type of relationship you want to walk.  Options: peer, derivative, peer_derivative, origin, topic.', 'peer')
+  .option('-o, --output <output_file>', 'The output filename. Default: out.xlsx', 'out.xlsx')
   .action(function(loc) {
   inputFile = loc;
   })
@@ -34,7 +34,8 @@ tools.arguments()
 //
 // Abort if the required arguments are not present
 //
-if (!tools.arguments().auth || !tools.arguments().output || !inputFile || !tools.arguments().document) {
+if (!tools.arguments().auth || !tools.arguments().output || !inputFile || !tools.arguments().document ||
+    !['peer', 'derivative', 'peer_derivative', 'origin', 'topic'].includes(tools.arguments().type)) {
   tools.arguments().help();
 }
 tools.LOGGER().debug('Auth: ' + tools.arguments().auth);
@@ -114,7 +115,7 @@ function getNextSource(sheet, rowNumber) {
   //
   // Request the data for this standard
   //
-  var sURL = BASE_URL + "/rest/v4/standards/" + GUID + "?fields[standards]=id,section,number,statement,origins";
+  var sURL = BASE_URL + "/rest/v4/standards/" + GUID + "?fields[standards]=id,section,number,statement,origins,derivatives";
   if (tools.arguments().type === TOPIC) {
     sURL += ",topics";
   }
@@ -231,12 +232,14 @@ function getSibling(GUID, index) {
   //
   // Request the standard related to this entity
   //
-  var sURL = BASE_URL + "/rest/v4/standards?fields[standards]=id,section,number,statement,origins&filter[standards]=(" +
+  var sURL = BASE_URL + "/rest/v4/standards?fields[standards]=id,section,number,statement,origins,derivatives&filter[standards]=(" +
         encodeURIComponent("document.guid eq '" + tools.arguments().document + "' AND ");
   if (tools.arguments().type === PEER) {
     sURL += "peers.id";
   } else if (tools.arguments().type === DERIVATIVE) {
     sURL += "origins.id";
+  } else if (tools.arguments().type === ORIGIN) {
+    sURL += "derivatives.id";
   } else if (tools.arguments().type === PEER_DERIVATIVE) {
     sURL += "peer_derivatives.id";
   } else if (tools.arguments().type === TOPIC) {
@@ -416,6 +419,11 @@ function recordResults(cell, rowNumber) {
     sibling.relationships.origins.data[0].meta = {}
     sibling.relationships.origins.data[0].meta.same_text = 'N';
     sibling.relationships.origins.data[0].meta.same_concepts = 'N';
+    sibling.relationships.derivatives = {};
+    sibling.relationships.derivatives.data = [{}];
+    sibling.relationships.derivatives.data[0].meta = {}
+    sibling.relationships.derivatives.data[0].meta.same_text = 'N';
+    sibling.relationships.derivatives.data[0].meta.same_concepts = 'N';
     
     dumpRow(gResponses[GUID].source, sibling, GUID, '');
   }
@@ -468,6 +476,9 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
   } else if (tools.arguments().type === DERIVATIVE) { // if we are looking for derivatives, then we are only concerned about the sameness between the origin and this derivative
     gOutSheet.getCell(gOutRow,9).value = sibling.relationships.origins.data[0].meta.same_text;
     gOutSheet.getCell(gOutRow,10).value = sibling.relationships.origins.data[0].meta.same_concepts;
+  } else if (tools.arguments().type === ORIGIN) { // if we are looking for origins, then we are only concerned about the sameness between the origin and this derivative
+    gOutSheet.getCell(gOutRow,9).value = sibling.relationships.derivatives.data[0].meta.same_text;
+    gOutSheet.getCell(gOutRow,10).value = sibling.relationships.derivatives.data[0].meta.same_concepts;
   } else if (tools.arguments().type === PEER_DERIVATIVE) {
     //
     // if we are looking for peer_derivatives, we are concerned about this standard's (what we call here the "source")
