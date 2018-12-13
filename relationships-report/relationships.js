@@ -14,6 +14,8 @@ const DERIVATIVE = 'derivative';
 const PEER_DERIVATIVE = 'peer_derivative';
 const TOPIC = 'topic';
 const ORIGIN = 'origin';
+const NO = 'N';
+const YES = 'Y';
 
 const BASE_URL = 'https://api.academicbenchmarks.com';
 //
@@ -357,43 +359,43 @@ function recordResults(cell, rowNumber) {
     gResponses[GUID].source.relationships.origins = {};
     gResponses[GUID].source.relationships.origins.data = [{}];
     gResponses[GUID].source.relationships.origins.data[0].meta = {};
-    gResponses[GUID].source.relationships.origins.data[0].meta.same_text = 'N';
-    gResponses[GUID].source.relationships.origins.data[0].meta.same_concepts = 'N';
+    gResponses[GUID].source.relationships.origins.data[0].meta.same_text = NO;
+    gResponses[GUID].source.relationships.origins.data[0].meta.same_concepts = NO;
     gResponses[GUID].source.relationships.topics = {};
     gResponses[GUID].source.relationships.topics.data = [{}];
   }
+  //
+  // If we are working on a topics crosswalk, map the topics relationships back to siblings here
+  //
+  if (tools.arguments().type === TOPIC) {
+    gResponses[GUID].siblings = []; // prepare the siblings array
     //
-    // If we are working on a topics crosswalk, map the topics relationships back to siblings here
+    // loop over the topics related to the source standard
     //
-    if (tools.arguments().type === TOPIC) {
-        gResponses[GUID].siblings = []; // prepare the siblings array
-        //
-        // loop over the topics related to the source standard
-        //
-        var siblings = {};
-        for (var i=0; i < gResponses[GUID].source.relationships.topics.data.length; i++) {
-            
-            var topicGUID = gResponses[GUID].source.relationships.topics.data[i].id;
-            //
-            // loop over the standards that are related via the current topic and add them to an associative array
-            // this drops duplicates
-            //
-            for (var j=0; j < gTopics[topicGUID].siblings.length; j++) {
-                siblings[gTopics[topicGUID].siblings[j].id] = gTopics[topicGUID].siblings[j];
-            }
-        }
-        //
-        // loop over the associative array and add the siblings to the list for this particular source standard
-        //
-        for (var sibGUID in siblings) {
-            if (siblings.hasOwnProperty(sibGUID)) {
-                gResponses[GUID].siblings.push(siblings[sibGUID]);
-            }
-        }
+    var siblings = {};
+    for (var i=0; i < gResponses[GUID].source.relationships.topics.data.length; i++) {
+        
+      var topicGUID = gResponses[GUID].source.relationships.topics.data[i].id;
+      //
+      // loop over the standards that are related via the current topic and add them to an associative array
+      // this drops duplicates
+      //
+      for (var j=0; j < gTopics[topicGUID].siblings.length; j++) {
+        siblings[gTopics[topicGUID].siblings[j].id] = gTopics[topicGUID].siblings[j];
+      }
     }
     //
-    // Prepare the siblings data and record it to the file
+    // loop over the associative array and add the siblings to the list for this particular source standard
     //
+    for (var sibGUID in siblings) {
+      if (siblings.hasOwnProperty(sibGUID)) {
+        gResponses[GUID].siblings.push(siblings[sibGUID]);
+      }
+    }
+  }
+  //
+  // Prepare the siblings data and record it to the file
+  //
   if (gResponses[GUID].siblings && gResponses[GUID].siblings.length > 0) { // there is sibling data
     //
     // loop over the siblings and dump them
@@ -417,13 +419,13 @@ function recordResults(cell, rowNumber) {
     sibling.relationships.origins = {};
     sibling.relationships.origins.data = [{}];
     sibling.relationships.origins.data[0].meta = {}
-    sibling.relationships.origins.data[0].meta.same_text = 'N';
-    sibling.relationships.origins.data[0].meta.same_concepts = 'N';
+    sibling.relationships.origins.data[0].meta.same_text = NO;
+    sibling.relationships.origins.data[0].meta.same_concepts = NO;
     sibling.relationships.derivatives = {};
     sibling.relationships.derivatives.data = [{}];
     sibling.relationships.derivatives.data[0].meta = {}
-    sibling.relationships.derivatives.data[0].meta.same_text = 'N';
-    sibling.relationships.derivatives.data[0].meta.same_concepts = 'N';
+    sibling.relationships.derivatives.data[0].meta.same_text = NO;
+    sibling.relationships.derivatives.data[0].meta.same_concepts = NO;
     
     dumpRow(gResponses[GUID].source, sibling, GUID, '');
   }
@@ -474,35 +476,109 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
   if (tools.arguments().type === PEER ||
         tools.arguments().type === TOPIC) { // concept doesn't exist for peers or topics
   } else if (tools.arguments().type === DERIVATIVE) { // if we are looking for derivatives, then we are only concerned about the sameness between the origin and this derivative
-    gOutSheet.getCell(gOutRow,9).value = sibling.relationships.origins.data[0].meta.same_text;
-    gOutSheet.getCell(gOutRow,10).value = sibling.relationships.origins.data[0].meta.same_concepts;
+    gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.origins.data, source.id);
+    gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.origins.data, source.id);
   } else if (tools.arguments().type === ORIGIN) { // if we are looking for origins, then we are only concerned about the sameness between the origin and this derivative
-    gOutSheet.getCell(gOutRow,9).value = sibling.relationships.derivatives.data[0].meta.same_text;
-    gOutSheet.getCell(gOutRow,10).value = sibling.relationships.derivatives.data[0].meta.same_concepts;
+    gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.derivatives.data, source.id);
+    gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.derivatives.data, source.id);
   } else if (tools.arguments().type === PEER_DERIVATIVE) {
     //
     // if we are looking for peer_derivatives, we are concerned about this standard's (what we call here the "source")
     // sameness with the true origin as well as the peer_derivative's sameness with origin
     //
     if (source.relationships.origins.data.length === 0 ||
-      sibling.relationships.origins.data === 0) {
-      gOutSheet.getCell(gOutRow,9).value = 'N';
-    } else if (source.relationships.origins.data[0].meta.same_text === 'Y' &&
-      sibling.relationships.origins.data[0].meta.same_text === 'Y') {
-      gOutSheet.getCell(gOutRow,9).value = 'Y';
+      sibling.relationships.origins.data.length === 0 || 
+      sibling.relationships.origins.data.length !== source.relationships.origins.data.length) { // if there is no origin data on one or the other or they don't have the same number of origins
+      gOutSheet.getCell(gOutRow,9).value = NO; // it is not the same
     } else {
-      gOutSheet.getCell(gOutRow,9).value = 'N';
+      var same = YES;
+      for (var i=0; i < source.relationships.origins.data.length; i++) { // loop over the source origins
+        if (source.relationships.origins.data[i].meta.same_text === NO || // if the source to origin same_text is a no or
+          checkSameText(sibling.relationships.origins.data, source.relationships.origins.data[i].id) === NO) { // if the source's origin appears in sibling's origins is a no or it doesn't appear
+          same = NO; // the sameness is no.  No is terminal so bail out
+          break;
+        }
+      }
+      gOutSheet.getCell(gOutRow,9).value = same;
     }
     if (source.relationships.origins.data.length === 0 ||
-      sibling.relationships.origins.data === 0) {
-      gOutSheet.getCell(gOutRow,10).value = 'N';
-    } else if (source.relationships.origins.data[0].meta.same_concepts === 'Y' &&
-      sibling.relationships.origins.data[0].meta.same_concepts === 'Y') {
-      gOutSheet.getCell(gOutRow,10).value = 'Y';
+      sibling.relationships.origins.data.length === 0 || 
+      sibling.relationships.origins.data.length !== source.relationships.origins.data.length) { // if there is no origin data on one or the other or they don't have the same number of origins
+      gOutSheet.getCell(gOutRow,10).value = NO;
     } else {
-      gOutSheet.getCell(gOutRow,10).value = 'N';
+      var same = YES;
+      for (var i=0; i < source.relationships.origins.data.length; i++) { // loop over the source origins
+        if (source.relationships.origins.data[i].meta.same_concepts === NO || // if the source to origin same_concepts is a no or
+          checkSameConcepts(sibling.relationships.origins.data, source.relationships.origins.data[i].id) === NO) { // if the source's origin appears in sibling's origins is a no or it doesn't appear
+          same = NO; // the sameness is no.  No is terminal so bail out
+          break;
+        }
+      }
+      gOutSheet.getCell(gOutRow,10).value = same;
     }
   }
 
   gOutRow++;
 }
+//
+// checkSameText - check the same text indicator for this standard with respect to passed in list and supplied GUID.  It loops over the list of standards.  When it finds
+//    the standard in the list (the source standard), it checks the "same_text" status.
+//  list - list of related standards
+//  sourceGUID - the source standard we are looking for
+//
+function checkSameText(list, sourceGUID) {
+  return checkSameFlags(list, sourceGUID, 'same_text'); // return the indicator
+}
+//
+// checkSameConcepts - check the same concepts indicator for this standard with respect to passed in list and supplied GUID.  It loops over the list of standards.  When it finds
+//    the standard in the list (the source standard), it checks the "same_concepts" status.
+//  list - list of related standards
+//  sourceGUID - the source standard we are looking for
+//
+function checkSameConcepts(list, sourceGUID) {
+  return checkSameFlags(list, sourceGUID, 'same_concepts'); // return the indicator
+}
+//
+// checkSameFlags - check the same_X indicator for this standard with respect to passed in list and supplied GUID.  It loops over the list of standards.  When it finds
+//    the standard in the list (the source standard), it returns status.
+//  list - list of related standards
+//  sourceGUID - the source standard we are looking for
+//  indicator - the indicator to check
+//
+function checkSameFlags(list, sourceGUID, indicator) {
+  var source = findStandardRelationship(list, sourceGUID);
+  if (!source) return NO; // the matching source was not found so there is no same anything
+  return source.meta[indicator]; // return the indicator
+}
+//
+// findStandardRelationship - loop over the relationships and find the matching one
+//  list - list of related standards
+//  sourceGUID - the source standard we are looking for
+//  returns the matching relationship or null if none was found
+//
+function findStandardRelationship(list, sourceGUID) {
+  for (var i=0; i < list.length; i++) { // loop over the list and look for the matching relationship
+    if (list[i].id === sourceGUID) return list[i];
+  }
+  return null; // nothing found, return null
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
