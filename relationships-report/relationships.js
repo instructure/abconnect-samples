@@ -487,33 +487,43 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
     // sameness with the true origin as well as the peer_derivative's sameness with origin
     //
     if (source.relationships.origins.data.length === 0 ||
-      sibling.relationships.origins.data.length === 0 || 
-      sibling.relationships.origins.data.length !== source.relationships.origins.data.length) { // if there is no origin data on one or the other or they don't have the same number of origins
+      sibling.relationships.origins.data.length === 0) { // if there is no origin data on one or the other
       gOutSheet.getCell(gOutRow,9).value = NO; // it is not the same
     } else {
       var same = YES;
+      var found = false;
       for (var i=0; i < source.relationships.origins.data.length; i++) { // loop over the source origins
-        if (source.relationships.origins.data[i].meta.same_text === NO || // if the source to origin same_text is a no or
-          checkSameText(sibling.relationships.origins.data, source.relationships.origins.data[i].id) === NO) { // if the source's origin appears in sibling's origins is a no or it doesn't appear
-          same = NO; // the sameness is no.  No is terminal so bail out
-          break;
+        if (findStandardRelationship(sibling.relationships.origins.data, source.relationships.origins.data[i].id)) { // we found a match on the origins
+          found = true; // we found at least one match
+          if (source.relationships.origins.data[i].meta.same_text === NO || // if the source to origin same_text is a no or
+            checkSameText(sibling.relationships.origins.data, source.relationships.origins.data[i].id) === NO) { // if the source's origin appears in sibling's origins is a no
+            same = NO; // the sameness is no.  No is terminal so bail out
+            break;
+          }
         }
       }
+      if (!found) same = NO; // if we never found a match, they don't match on concepts
+
       gOutSheet.getCell(gOutRow,9).value = same;
     }
     if (source.relationships.origins.data.length === 0 ||
-      sibling.relationships.origins.data.length === 0 || 
-      sibling.relationships.origins.data.length !== source.relationships.origins.data.length) { // if there is no origin data on one or the other or they don't have the same number of origins
-      gOutSheet.getCell(gOutRow,10).value = NO;
+      sibling.relationships.origins.data.length === 0) { // if there is no origin data on one or the other
+      gOutSheet.getCell(gOutRow,10).value = NO; // their concepts don't match
     } else {
       var same = YES;
+      var found = false;
       for (var i=0; i < source.relationships.origins.data.length; i++) { // loop over the source origins
-        if (source.relationships.origins.data[i].meta.same_concepts === NO || // if the source to origin same_concepts is a no or
-          checkSameConcepts(sibling.relationships.origins.data, source.relationships.origins.data[i].id) === NO) { // if the source's origin appears in sibling's origins is a no or it doesn't appear
-          same = NO; // the sameness is no.  No is terminal so bail out
-          break;
+        if (findStandardRelationship(sibling.relationships.origins.data, source.relationships.origins.data[i].id)) { // we found a match on the origins
+          found = true; // we found at least one match
+          if (source.relationships.origins.data[i].meta.same_concepts === NO || // if the source to origin same_concepts is a no or
+            checkSameConcepts(sibling.relationships.origins.data, source.relationships.origins.data[i].id) === NO) { // if the source's origin appears in sibling's origins is a no
+            same = NO; // the sameness is no.  No is terminal so bail out
+            break;
+          }
         }
       }
+      if (!found) same = NO; // if we never found a match, they don't match on concepts
+      
       gOutSheet.getCell(gOutRow,10).value = same;
     }
   }

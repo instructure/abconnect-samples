@@ -59,7 +59,7 @@ $ node relationships.js
     -h, --help                          output usage information
     -a, --auth <authentication string>  The query string of the authentication information starting with &.  It must contain a value for partner.id, auth.signature and auth.expires.  The values must be properly URI encoded.  It may optionally include a value for user.id. Including authentication details is required.
     -d, --document <GUID>               The GUID of the destination document. Required.
-    -t, --type <relationship type>      The type of relationship you want to walk.  Options: peer, derivative, peer_derivative, topic. Default: peer.
+    -t, --type <relationship type>      The type of relationship you want to walk.  Options: peer, derivative, peer_derivative, origin, topic. Default: peer.
     -o, --output <output file>          The output filename. Default: out.xlsx
 ```
 
