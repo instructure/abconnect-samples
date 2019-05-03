@@ -544,6 +544,12 @@ function loadSiblings() {
       }
       filter = "topics.id in (" + filter.substring(0, filter.length-1) + ")";
       break;
+    case 'Replaces':
+      filter = "replaces.id eq '" + gCurrentSourceStandard.data.id + "'";
+      break;
+    case 'Replaced By':
+      filter = "replaced_by.id eq '" + gCurrentSourceStandard.data.id + "'";
+      break;
   }
   //
   // if the grade filter box is checked, add it to the filter criteria
@@ -560,9 +566,10 @@ function loadSiblings() {
         listGrades = "'K',";
         low = 1;
       }
-      for (var i=low; i<=high; i++) {
+      for (var i=parseInt(low); i<=parseInt(high); i++) {
         listGrades += "'" + i + "',"
       }
+      listGrades = listGrades.substr(0, listGrades.length-1);
       filter += 'AND education_levels.grades.code IN (' + listGrades + ")";
     }
   }
