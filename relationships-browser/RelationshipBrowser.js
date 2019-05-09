@@ -545,10 +545,18 @@ function loadSiblings() {
       filter = "topics.id in (" + filter.substring(0, filter.length-1) + ")";
       break;
     case 'Replaces':
-      filter = "replaces.id eq '" + gCurrentSourceStandard.data.id + "'";
+      //
+      // Note the reverse logic here.  The user orientation is that the bottom list on the page is a representation of the relationship from the standard selected at the top of the page.
+      // In this case, the selected standard REPLACES the standards listed at the bottom.  So you have to look for standards replaced_by the selected standard.
+      //
+      filter = "replaced_by.id eq '" + gCurrentSourceStandard.data.id + "'";
       break;
     case 'Replaced By':
-      filter = "replaced_by.id eq '" + gCurrentSourceStandard.data.id + "'";
+      //
+      // Note the reverse logic here.  The user orientation is that the bottom list on the page is a representation of the relationship from the standard selected at the top of the page.
+      // In this case, the selected standard is REPLACED BY the standards listed at the bottom.  So you have to look for standards that replace the selected standard.
+      //
+      filter = "replaces.id eq '" + gCurrentSourceStandard.data.id + "'";
       break;
   }
   //
