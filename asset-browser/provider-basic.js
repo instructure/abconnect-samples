@@ -59,7 +59,7 @@ function getBasicItem(asset, title, subjects, grades) {
   // add links to the content - but only if the link is available
   //
   var contentLink = '';
-  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
     contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   return `
@@ -85,7 +85,7 @@ function getBasicItem(asset, title, subjects, grades) {
 //
 function getExpandItem(asset, title, subjects, grades) {
   var contentLink = '';
-  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
     contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   //
@@ -123,7 +123,7 @@ function getExpandItem(asset, title, subjects, grades) {
 //
 function getTileItem(asset, title, subjects, grades, i) {
   var contentLink = '';
-  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
     contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   return `
@@ -147,7 +147,7 @@ function getTileItem(asset, title, subjects, grades, i) {
 function getImageClass(asset, number) {
   var imageUrl = '';
   
-  if (asset.attributes.custom_attributes.image_url && asset.attributes.custom_attributes.image_url.length > 0 &&
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.image_url && asset.attributes.custom_attributes.image_url.length > 0 &&
       asset.attributes.custom_attributes.image_url[0] && asset.attributes.custom_attributes.image_url[0].length > 0) {  // if there is a proper definition in AB Connect, use it
     imageUrl = `url(${asset.attributes.custom_attributes.image_url[0]}), url(img/logo.png)`;
   } else {                                                                  // fallback to the logo
