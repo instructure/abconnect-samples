@@ -367,8 +367,15 @@ function facetComparator(list) {
       
     } else if (list === '.types') { // sort by asset_type
       return function(a, b) {
-        var upperA = a.data.asset_type.toUpperCase();
-        var upperB = b.data.asset_type.toUpperCase();
+        //
+        // workaround for an issue with consumer/owner facets #AC-1583
+        //
+        let aa = a.data.asset_type;
+        if (!aa) aa = a.data;
+        let bb = b.data.asset_type;
+        if (!bb) bb = b.data;
+        var upperA = aa.toUpperCase();
+        var upperB = bb.toUpperCase();
         if (upperA < upperB) return -1;
         else if (upperA > upperB) return 1;
         else return 0;
@@ -562,8 +569,15 @@ function findFacetCount(data, ID, facetName) {
         // we found the value we need:
         //
         if (facetName === 'asset_types') {
+          // workaround for an issue with consumer/owner facets #AC-1583
+          if (object.data.asset_type) {
           if (object.data.asset_type === ID) {
             return object.count; // return it
+            }
+          } else if (object.data) {
+            if (object.data === ID) {
+              return object.count; // return it
+            }
           }
         } else if (bCustom) {
           if (object.data === ID) {
