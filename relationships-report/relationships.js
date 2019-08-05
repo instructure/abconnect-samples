@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// TODO: page size limits, paging, relationship paging, others?
+// TODO: relationship paging
 
 'use strict';
 
@@ -22,6 +22,7 @@ const BASE_URL = 'https://api.academicbenchmarks.com';
 const NOTHING = 0;
 const SIBLINGS = 1;
 const FINISH = 2;
+const LIMIT = 10;
 //
 // Create the limiter
 //
@@ -226,8 +227,7 @@ function getSibling(guid, responses) {
   //
   // Request the standards related to this entity
   //
-  let sURL = BASE_URL + "/rest/v4/standards?fields[standards]=id,section,number,statement,origins,derivatives&filter[standards]=(" +
-        encodeURIComponent("document.guid eq '" + tools.arguments().document + "' AND ");
+  let sURL = BASE_URL + `/rest/v4/standards?fields[standards]=id,section,number,statement,origins,derivatives&limit=${LIMIT}&filter[standards]=(${encodeURIComponent(`document.guid eq '${tools.arguments().document}' AND `)}`;
   if (tools.arguments().type === PEER) {
     sURL += "peers.id";
   } else if (tools.arguments().type === DERIVATIVE) {
@@ -283,15 +283,24 @@ function receiveSiblings(data, response, [guid, responses]) {
   // source is resolved on output
   //
   if (tools.arguments().type === TOPIC) {
-      responses.topics[guid].siblings = null;
       if (data && data.data) {
-          responses.topics[guid].siblings = data.data;
+        if (!responses.topics[guid].siblings) responses.topics[guid].siblings = [];
+        
+        responses.topics[guid].siblings = responses.topics[guid].siblings.concat(data.data); // sum up arrays to support paging
       }
   } else {
-      responses.sources[guid].siblings = null;
       if (data && data.data) {
-          responses.sources[guid].siblings = data.data;
+        if (!responses.sources[guid].siblings) responses.sources[guid].siblings = [];
+        responses.sources[guid].siblings = responses.sources[guid].siblings.concat(data.data); // sum up arrays to support paging
       }
+  }
+  //
+  // get the next page of data
+  //
+  if (data.links.next) {
+    limiter.schedule({id: guid}, tools.SpaceRequests, tools.GET, {}, data.links.next + tools.arguments().auth, receiveSiblings, [guid, responses]);
+    responses.requested[guid] = {pending: true};
+    return;
   }
   
   let completedCount = countCompletedRequests(responses);
