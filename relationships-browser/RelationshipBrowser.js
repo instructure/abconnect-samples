@@ -11,6 +11,8 @@ const LIST_NAME = {
 const AUTH_WIDGET = "dest_authority";
 const PUB_WIDGET = "dest_publication";
 const DOC_WIDGET = "dest_doc";
+const RETRY_LIMIT=5;
+const RETRY_LAG=200;
 
 var gPartnerID = null;
 var gSignature = null;
@@ -35,7 +37,7 @@ function loadFacets(listName) {
   //
   // construct the URL to retreive the facets
   //
-  var sourceUrl = STANDARDS_URL + '?limit=0';
+  var sourceUrl = STANDARDS_URL + '?limit=0&facet_summary=_none';
   //
   // build the filter statement, filtering on selected values if any.  Here we add filters depending on how deep
   // into the set of filters we are.  E.g. subject is deeper than publication.  We add the filter criteria on the
@@ -100,20 +102,35 @@ function loadFacets(listName) {
   //
   // request the data
   //
-  $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      PopulateFacets(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    }
+  $.ajax( 
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+        PopulateFacets(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
   );
 }
 //
@@ -126,7 +143,7 @@ function lookupAncestors(listName) {
   //
   // construct the URL to retreive the facets
   //
-  var sourceUrl = STANDARDS_URL + '?limit=0';
+  var sourceUrl = STANDARDS_URL + '?limit=0&facet_summary=_none';
   //
   // build the filter statement, filter on the selected list
   //
@@ -155,20 +172,36 @@ function lookupAncestors(listName) {
   //
   // request the data
   //
-  $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      SelectAncestors(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    }
+  $.ajax( 
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+        SelectAncestors(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
   );
 }
 //
@@ -346,20 +379,36 @@ function selectRelatedStandard() {
       //
       // request the data
       //
-      $.ajax(
-        {
-        url: sourceUrl,
-        crossDomain: true,
-        dataType: 'json',
-        success: function(data,status)
-          {
-          PopulateDetails(data, DETAILS_LABEL_REL);
-          },
-        error: function(req, status, error)
-          {
-          alert(error);
-          }
-        }
+      $.ajax( 
+        { 
+          url: sourceUrl,
+          crossDomain: true, 
+          dataType: 'json', 
+          tryCount: 0, 
+          retryLimit: RETRY_LIMIT,
+          success: function(data,status) {
+            PopulateDetails(data, DETAILS_LABEL_REL);
+            },
+          error: function(xhr, status, error) 
+            { 
+            switch (xhr.status) {
+              case 503: // various resource issues
+              case 504: 
+              case 408: 
+              case 429: 
+                this.tryCount++; 
+                if (this.tryCount <= this.retryLimit) { //try again 
+                  var ajaxContext = this; 
+                  setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+                } else { 
+                  alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+                } 
+                return; 
+              default: 
+                alert(`Unexpected error: ${xhr.responseText}`);
+            } 
+          } 
+        } 
       );
     }
   }
@@ -393,35 +442,51 @@ function standardSelected(currentStandard) {
     //
     // request the data
     //
-    $.ajax(
-      {
-      url: sourceUrl,
-      crossDomain: true,
-      dataType: 'json',
-      success: function(data,status)
-        {
-        PopulateDetails(data, DETAILS_LABEL);
-        //
-        // Retain the data so we can use it to lookup related standards when appropriate.
-        // Then clear out the settings that the system uses to track if it is current on the siblings list so it forces an update of the list
-        //
-        gCurrentSourceStandard = data;
-        //
-        // update the grade selection if the filter is active
-        //
-        updateGrades();
-        //
-        // clear out the memory of the siblings list selection so it starts fresh
-        //
-        forceSiblingRefresh();
-        
-        gActiveStandard = currentStandard; // remember where we are
-        },
-      error: function(req, status, error)
-        {
-        alert(error);
-        }
-      }
+    $.ajax( 
+      { 
+        url: sourceUrl,
+        crossDomain: true, 
+        dataType: 'json', 
+        tryCount: 0, 
+        retryLimit: RETRY_LIMIT,
+        success: function(data,status) {
+          PopulateDetails(data, DETAILS_LABEL);
+          //
+          // Retain the data so we can use it to lookup related standards when appropriate.
+          // Then clear out the settings that the system uses to track if it is current on the siblings list so it forces an update of the list
+          //
+          gCurrentSourceStandard = data;
+          //
+          // update the grade selection if the filter is active
+          //
+          updateGrades();
+          //
+          // clear out the memory of the siblings list selection so it starts fresh
+          //
+          forceSiblingRefresh();
+          
+          gActiveStandard = currentStandard; // remember where we are
+          },
+        error: function(xhr, status, error) 
+          { 
+          switch (xhr.status) {
+            case 503: // various resource issues
+            case 504: 
+            case 408: 
+            case 429: 
+              this.tryCount++; 
+              if (this.tryCount <= this.retryLimit) { //try again 
+                var ajaxContext = this; 
+                setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+              } else { 
+                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              } 
+              return; 
+            default: 
+              alert(`Unexpected error: ${xhr.responseText}`);
+          } 
+        } 
+      } 
     );
   }
 }
@@ -509,7 +574,7 @@ function loadSiblings() {
   //
   // Retrieve the related standards based on the type specified in the relationship type drop down
   //
-  var sourceUrl = STANDARDS_URL + '?fields[standards]=statement,number,seq,education_levels';
+  var sourceUrl = STANDARDS_URL + '?facet_summary=_none&fields[standards]=statement,number,seq,education_levels';
   //
   // build the filter statement based on the relationship type, the current selected source standard and the sibling document
   //
@@ -590,20 +655,37 @@ function loadSiblings() {
   //
   // request the data
   //
-  $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      PopulateSiblings(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    });
+  $.ajax( 
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+        PopulateSiblings(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  );
 }
 //
 // PopulateSiblings - load the siblings list
@@ -678,40 +760,59 @@ function checkTopicsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var topicURL = TOPICS_URL + '?limit=0' + authenticationParameters();
+  var topicURL = TOPICS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
   //
   // request the data
   //
-  $.ajax(
-    {
-    url: topicURL,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status) {
+  $.ajax( 
+    { 
+      url: topicURL,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
         gTopicsLicensed = true; // note we can use topics and relationships as topics is a higher license level than relationships
         gRelationshipsLicensed = true;
         init();
-      },
-    error: function(req, status, error) {
-        if (req.status === 401) { // authorization error - let's figure out what kind
-          if (req.responseJSON.errors && 
-            req.responseJSON.errors[0].detail) {
-              
-            if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
-              alert('Invalid partner ID or key.');
-              if (gWidgetInit) {
-                $('.sourceStandard').standardsBrowser('destroy'); // this isn't strictly necessary, but we want to make sure it is cleared if someone changes the auth credentials and re-initializes
-                gWidgetInit = false;
-              }
-            } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') {
-              // not going to do the Topic thing - let's check the relationships
-              checkRelationshipLicenseLevel();
-            } else alert(error);
-          } else alert(error);
-        } else alert(error);
-      }
-    }
-  );
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 401: // authorization error - let's figure out what kind
+            if (xhr.responseJSON.errors && 
+                xhr.responseJSON.errors[0].detail) {
+                  
+              if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
+                alert('Invalid partner ID or key.');
+                if (gWidgetInit) {
+                  $('.sourceStandard').standardsBrowser('destroy'); // this isn't strictly necessary, but we want to make sure it is cleared if someone changes the auth credentials and re-initializes
+                  gWidgetInit = false;
+                }
+              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') { // not going to do the Topic thing
+                // not going to do the Topic thing - let's check the relationships
+                checkRelationshipLicenseLevel();
+              } else alert(`Unexpected error: ${xhr.responseText}`);
+            } else alert(`Unexpected error: ${xhr.responseText}`);
+            break;
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // checkRelationshipLicenseLevel - see if we can request relationships
@@ -720,32 +821,51 @@ function checkRelationshipLicenseLevel() {
   //
   // hit the relationships - if you get a 401, you are not licensed for relationships
   //
-  var peersURL = STANDARDS_URL + '?limit=1&fields[standards]=peers' + authenticationParameters();
+  var peersURL = STANDARDS_URL + '?limit=1&facet_summary=_none&fields[standards]=peers' + authenticationParameters();
   //
   // request the data
   //
-  $.ajax(
-    {
-    url: peersURL,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status) {
-        gRelationshipsLicensed = true;// note we can use relationships
-        init();
-      },
-    error: function(req, status, error) {
-        if (req.status === 401) { // authorization error - let's figure out what kind
-          if (req.responseJSON.errors && 
-            req.responseJSON.errors[0].detail) {
-      
-            if (req.responseJSON.errors[0].detail === 'This account is not licensed to access peers') { // good to know - let's get started anyway
-              init();
-            } else alert(error);
-          } else alert(error);
-        } else alert(error);
-      }
-    }
-  );
+  $.ajax( 
+    { 
+      url: peersURL,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+          gRelationshipsLicensed = true;// note we can use relationships
+          init();
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 401: // authorization error - let's figure out what kind
+            if (xhr.responseJSON.errors && 
+                xhr.responseJSON.errors[0].detail) {
+                  
+              if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access peers') { // not going to do the Topic thing
+                init();
+              } else alert(`Unexpected error: ${xhr.responseText}`);
+            } else alert(`Unexpected error: ${xhr.responseText}`);
+            break;
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // init - if we are here, it is all good - get started 
@@ -758,6 +878,9 @@ function init() {
   if (!gRelationshipsLicensed) {
     $('.destination').hide();
     $('.relationshipListArea').hide();
+  } else {
+    $('.destination').show();
+    $('.relationshipListArea').show();
   }
   //
   // if topics are disallowed - disable the topics from the peer dropdown
