@@ -127,7 +127,7 @@ function getSource(row, rowNumber, responses) {
   //
   // Request the data for this standard
   //
-  let sURL = BASE_URL + "/rest/v4/standards/" + guid + "?fields[standards]=id,section,number,statement,origins,derivatives";
+  let sURL = BASE_URL + "/rest/v4/standards/" + guid + "?facet_summary=_none&fields[standards]=id,section,number,statement,origins,derivatives";
   if (tools.arguments().type === TOPIC) {
     sURL += ",topics";
   }
@@ -227,7 +227,7 @@ function getSibling(guid, responses) {
   //
   // Request the standards related to this entity
   //
-  let sURL = BASE_URL + `/rest/v4/standards?fields[standards]=id,section,number,statement,origins,derivatives&limit=${LIMIT}&filter[standards]=(${encodeURIComponent(`document.guid eq '${tools.arguments().document}' AND `)}`;
+  let sURL = BASE_URL + `/rest/v4/standards?fields[standards]=id,section,number,statement,origins,derivatives&facet_summary=_none&limit=${LIMIT}&filter[standards]=(${encodeURIComponent(`document.guid eq '${tools.arguments().document}' AND `)}`;
   if (tools.arguments().type === PEER) {
     sURL += "peers.id";
   } else if (tools.arguments().type === DERIVATIVE) {
