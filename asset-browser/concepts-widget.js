@@ -103,23 +103,41 @@ function updateCloudCounts(className) {
   //
   // construct the URL to retreive the facets
   //
-  var sourceUrl = ASSETS_URL + '?limit=0' + buildFilter([className]) + facet + authenticationParameters(); // do the auth bit
+  var sourceUrl = ASSETS_URL + '?limit=0&facet_summary=_none' + buildFilter([className]) + facet + authenticationParameters(); // do the auth bit
   //
   // request the data
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      countConceptsAndTopics(data, className);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error updating the topics/concepts counts from AB Connect. ' + req.responseText);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        countConceptsAndTopics(data, className);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error updating the topics/concepts counts from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // countConceptsAndTopics - Count and record the Concepts and Topics.

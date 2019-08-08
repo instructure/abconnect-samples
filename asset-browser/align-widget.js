@@ -100,7 +100,7 @@ function countStandardsRelatedAssets(GUID) {
   } else { // there is no filter criteria
     facetFilter = leadIn + encodeURIComponent("standards.id eq '" + GUID + "' AND " + dispositionSearch) + ')';
   }
-  var sVariableArguments = '?limit=0' + facetFilter;
+  var sVariableArguments = '?limit=0&facet_summary=_none' + facetFilter;
   //
   // construct the URL to count the assets
   //
@@ -111,19 +111,36 @@ function countStandardsRelatedAssets(GUID) {
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      setStandardAssetCount(data, GUID);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error counting standards frequency counts from AB Connect. ' + req.responseText);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+          setStandardAssetCount(data, GUID);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error retrieving standards facet counts from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 
 }
 //
@@ -281,53 +298,87 @@ function addStandards() {
     sGUIDlist += "'" + GUID + "',";
   }
   sGUIDlist = sGUIDlist.substring(0,sGUIDlist.length-1); // strip the trailing comma
-  var sourceUrl = STANDARDS_URL + '?filter[standards]=(' + encodeURIComponent('id in (' + sGUIDlist + ')') + ')&fields[standards]=number,statement'
+  var sourceUrl = STANDARDS_URL + '?filter[standards]=(' + encodeURIComponent('id in (' + sGUIDlist + ')') + ')&facet_summary=_none&fields[standards]=number,statement'
   
   sourceUrl += authenticationParameters(); // do the auth bit
   //
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      addStandardsToList(data);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error retrieving standards details for chips from AB Connect. ' + req.responseText);
-      }
-    }
-  );
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        addStandardsToList(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error retrieving standards details for chips from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // addStandard - Add a standard to the list window (in response to a double click event)
 //
 function addStandard(GUID) {
-  var sourceUrl = STANDARDS_URL + '?filter[standards]=(' + encodeURIComponent("id eq '" + GUID + "'") + ')&fields[standards]=number,statement'
+  var sourceUrl = STANDARDS_URL + '?filter[standards]=(' + encodeURIComponent("id eq '" + GUID + "'") + ')&fields[standards]=number,statement&facet_summary=_none'
   
   sourceUrl += authenticationParameters(); // do the auth bit
   //
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      addStandardsToList(data);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error getting standards details from AB Connect. ' + req.responseText);
-      }
-    }
-  );
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        addStandardsToList(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error retrieving standards details from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // addStandardsToList - Add standards to the list window (if any are selected)

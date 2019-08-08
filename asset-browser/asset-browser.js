@@ -6,6 +6,8 @@ const ARTIFACTS_URL = HOST + "/rest/v4/artifacts";
 const CONCEPTS_URL = HOST + "/rest/v4/concepts";
 const PROCESSING = 'Processing...';
 const NO_ALIGNMENTS = 'No Alignments';
+const RETRY_LIMIT=5;
+const RETRY_LAG=200;
 
 var gIncludePredicted = true; // flip this if you want just accepted
 var gTopicsConceptsLicensed = false; // assume topics aren't licensed initially
@@ -75,7 +77,7 @@ function loadAssets() {
   //
   // construct the URL to retreive the assets
   //
-  var sourceUrl = ASSETS_URL + sVariableArguments + '&fields[assets]=title,client_id,disciplines,education_levels,asset_type';
+  var sourceUrl = ASSETS_URL + sVariableArguments + '&facet_summary=_none&fields[assets]=title,client_id,disciplines,education_levels,asset_type';
   sourceUrl += Provider.getAssetFields();
 
   sourceUrl += authenticationParameters(); // add the auth stuff
@@ -83,19 +85,37 @@ function loadAssets() {
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      populateAssets(data);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error loading assets from AB Connect. ' + req.responseText);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        populateAssets(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error loading assets from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // populateAssets - load the assets list
@@ -285,39 +305,55 @@ function checkTopicsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var topicURL = TOPICS_URL + '?limit=0' + authenticationParameters();
+  var topicURL = TOPICS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
   //
   // request the data
   //
   $.ajax(
-    {
-    url: topicURL,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status) {
+    { 
+      url: topicURL,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
         gTopicsConceptsLicensed = true; // note we can use topics and relationships as topics is a higher license level than relationships
         checkArtifactsLicenseLevel(); // check the artifact license now
-      },
-    error: function(req, status, error) {
-        if (req.status === 401) { // authorization error - let's figure out what kind
-          if (req.responseJSON.errors && 
-            req.responseJSON.errors[0].detail) {
-              
-            if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
-              alert('Invalid partner ID or key.');
-            } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') {
-              checkArtifactsLicenseLevel(); // check the artifact license now
-            } else { // swallow an unexpected error and just check the artifact license now
-              checkArtifactsLicenseLevel(); // check the artifact license now
-            }
-          } else checkArtifactsLicenseLevel(); // swallow an unexpected error and check the artifact license now
-        } else {
-          alert(`An error occured when attempting to check the Topics license. This is likely a timeout on the dev server. Status: ${status}. Error: ${error}`);
-          checkArtifactsLicenseLevel();
-        }
-      }
-    }
-  );
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 401: // authorization error - let's figure out what kind
+            if (xhr.responseJSON.errors && 
+                xhr.responseJSON.errors[0].detail) {
+                  
+              if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
+                alert('Invalid partner ID or key.');
+              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') { // not going to do the Topic thing
+                checkArtifactsLicenseLevel(); // check the artifact license now
+              } else checkArtifactsLicenseLevel(); // swallow an unexpected error and check the artifact license now
+            } else checkArtifactsLicenseLevel(); // swallow an unexpected error and check the artifact license now
+            break;
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`An error occured when attempting to check the Topics license. ${xhr.responseText}`);
+            checkArtifactsLicenseLevel();
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // checkArtifactsLicenseLevel - see if we can request artifacts
@@ -326,39 +362,55 @@ function checkArtifactsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var artifactURL = ARTIFACTS_URL + '?limit=0' + authenticationParameters();
+  var artifactURL = ARTIFACTS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
   //
   // request the data
   //
   $.ajax(
-    {
-    url: artifactURL,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status) {
+    { 
+      url: artifactURL,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
         gArtifactsLicensed = true; // note we can use artifacts
         init();
-      },
-    error: function(req, status, error) {
-        if (req.status === 401) { // authorization error - let's figure out what kind
-          if (req.responseJSON.errors && 
-            req.responseJSON.errors[0].detail) {
-              
-            if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
-              alert('Invalid partner ID or key.');
-            } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Artifacts') {
-              init();
-            } else { // swallow an unexpected error and just init the app without artifacts
-              init();
-            }
-          } else init(); // swallow an unexpected error and just init the app without artifacts
-        } else {
-          alert(`An error occured when attempting to check the Artifacts license. This is likely a timeout on the dev server. Status: ${status}. Error: ${error}`);
-          init();
-        }
-      }
-    }
-  );
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 401: // authorization error - let's figure out what kind
+            if (xhr.responseJSON.errors && 
+                xhr.responseJSON.errors[0].detail) {
+                  
+              if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
+                alert('Invalid partner ID or key.');
+              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Artifacts') { // not going to do the artifact thing
+                init();
+              } else init(); // swallow an unexpected error and just init the app without artifacts
+            } else init();  // swallow an unexpected error and just init the app without artifacts
+            break;
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`An error occured when attempting to check the Artifacts license. ${xhr.responseText}`);
+            init();
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // init - if we are here, it is all good - get started 
