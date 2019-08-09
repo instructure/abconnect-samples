@@ -71,9 +71,9 @@ function updateArtifactFaceting() {
       dataType: 'json', 
       tryCount: 0, 
       retryLimit: RETRY_LIMIT,
-      success: function(data,status,response)
+      success: function(data,status)
         {
-        recordArtifacts(data,response);
+        recordArtifacts(data);
         },
       error: function(xhr, status, error) 
         { 
@@ -100,9 +100,8 @@ function updateArtifactFaceting() {
 //
 // recordArtifacts - record the artifacts
 //    data - AJAX response
-//    response - 
 //
-function recordArtifacts(data, response) {
+function recordArtifacts(data) {
   //
   // start fresh (in case there were multiple lookups)
   //
