@@ -62,7 +62,8 @@ function checkTopicsLicenseLevel() {
       dataType: 'json', 
       tryCount: 0, 
       retryLimit: RETRY_LIMIT,
-      success: function(data,status) {
+      success: function(data,status)
+        {
           gTopicsLicensed = true; // note we can use topics
           init();
         },
@@ -158,7 +159,7 @@ function standardSelected(currentStandard) {
     // construct the URL to pull the details
     //
     var sourceUrl = STANDARDS_URL + '/' + currentStandard +
-      '?fields[standards]=statement,section,document,education_levels,disciplines,number,parent,utilizations&facet_summary=_none';
+      '?facet_summary=_none&fields[standards]=statement,section,document,education_levels,disciplines,number,parent,utilizations';
     if (gTopicsLicensed) sourceUrl += ',topics,concepts,key_ideas&include=topics,concepts'; // include the topics stuff if topics is licensed
 
     logCall(sourceUrl); // dump URLs to the console to make it easy to see the calls when learning the API
