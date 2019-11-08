@@ -1,0 +1,251 @@
+/* Roboto font from Google Fonts https://fonts.google.com/specimen/Roboto - license: http://www.apache.org/licenses/LICENSE-2.0 */
+@import url('https://fonts.googleapis.com/css?family=Roboto');
+/* Roboto font from Google Fonts https://fonts.google.com/specimen/Roboto - license: http://www.apache.org/licenses/LICENSE-2.0 */
+
+body {
+  background-color: GhostWhite;
+  font-family: Roboto
+}
+h1 {
+  font-family: Roboto;
+  margin-bottom: 0;
+}
+h2 {
+  font-family: Roboto;
+  font-size: 14pt;
+  font-weight: bold;
+  display: inline;
+}
+.page {
+  width: 1200px;
+  /* display: table; */
+  margin: auto;
+  background-color: white;
+}
+.struct {
+  display: table;
+  width: 1200px;
+}
+.content {
+  display: table-cell;
+  /* width: 100%; */
+}
+.data {
+  width: 100%;
+  /* margin: 0 auto 0 35px; */
+  display: table;
+  /* padding: 10px 0; */
+}
+.value {
+  display: inline;
+  float: right;
+  padding-left: 10px;
+}
+.label {
+  font-weight: bold;
+  display: inline;
+}
+.authID {
+  /* width: 350px; */
+  display: table-cell;
+  padding: 15px 30px 15px 70px;
+  /* float: right; */
+  /* position: relative; */
+}
+.authID h2 {
+  color: #01426A;
+}
+.authKey {
+  /* width: 350px; */
+  display: table-cell;
+  padding: 15px 30px 15px 10px;
+  /* float: right; */
+  /* position: relative; */
+}
+.authKey h2 {
+  color: #01426A;
+}
+.goButton {
+  /* width: 100px; */
+  display: table-cell;
+  padding: 15px;
+  vertical-align: middle;
+}
+.spacer {
+  width: 247px;
+  display: table-cell;
+  padding: 15px;
+  vertical-align: middle;
+}
+.header {
+  margin-top: 10px;
+  font-weight: bold;
+  padding-right: 15px;
+  padding-top: 30px;
+  width: 100%;
+  display: table-row;
+  color: #01426A;
+  font-size: 18pt;
+}
+.fields {
+  float: right;
+}
+.environment {
+  width: 350px;
+  display: table-cell;
+  padding: 5px 30px 15px;
+}
+.mdc-button:not(:disabled) {
+  color: #fff;
+}
+.mdc-button--raised:not(:disabled), .mdc-button--unelevated:not(:disabled) {
+  background-color: var(--mdc-theme-primary, #01426A);
+}
+.banner {
+  background-color: #C1C2D0;
+  /* border-bottom: #01426A; */
+  border-bottom-width: 2px;
+  border-bottom-color: #01426A;
+  border-bottom-style: solid;
+}
+.disabledElement {
+    pointer-events: none;
+    opacity: 0.4;
+}
+.output {
+  display: table-cell;
+  padding: 10px 0 0 25px;
+  width: 50%;
+}
+.results {
+  display: table-row;
+}
+.results .summary {
+  padding: 10px 10px 0 25px;
+}
+.docLine {
+  margin: 8px 0;
+}
+.offline {
+  background-color: #EDEAE5;
+}
+.partnerCell {
+  display: table-cell;
+  vertical-align: middle;
+}
+.subjectSelect .mdc-select {
+  min-width: 350px;
+}
+.subjectSelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.gradeSelect .mdc-select {
+  min-width: 350px;
+}
+.gradeSelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.topicSelect .mdc-select {
+  min-width: 350px;
+}
+.topicSelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.subtopicSelect .mdc-select {
+  min-width: 350px;
+}
+.subtopicSelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.authoritySelect .mdc-select {
+  width: 250px;
+}
+.authoritySelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.publicationSelect .mdc-select {
+  width: 250px;
+}
+.publicationSelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.documentSelect .mdc-select {
+  width: 250px;
+}
+.documentSelect {
+  display: inline-block;
+  margin: 10px 10px 10px 50px;
+  vertical-align: middle;
+}
+.mdc-icon-button {
+  vertical-align: middle;
+}
+.topicSettings {
+  display: table-cell;
+}
+.mdc-text-field--textarea.mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-notched-outline__notch {
+  border-color: #01426A;  
+}
+.mdc-text-field--textarea.mdc-text-field .mdc-notched-outline__trailing {
+  border-bottom-right-radius: 0px;
+}
+.mdc-text-field--textarea.mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-notched-outline__trailing {
+  border-bottom-right-radius: 0px;
+  border-color: #01426A;  
+}
+.mdc-text-field--textarea.mdc-text-field .mdc-notched-outline__leading {
+  border-bottom-left-radius: 0px;
+}
+.mdc-text-field--textarea.mdc-text-field--focused:not(.mdc-text-field--disabled) .mdc-notched-outline__leading {
+  border-bottom-left-radius: 0px;
+  border-color: #01426A;  
+}
+.error {
+  background-color: #EACBBE;
+}
+.abdisabled {
+  cursor: wait; 
+}
+.helpArea {
+  display: inline;
+  float: right;
+  padding-top: 6px;
+  color: #01426A;
+}
+.helpArea i.material-icons.mdc-icon-button__icon :visited {
+  color: #01426A;
+}
+.helpArea i.material-icons.mdc-icon-button__icon {
+  color: #01426A;
+}
+.lineItem {
+    background-color: #EDEAE5;
+    padding: 8px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.sectionName {
+    font-style: italic;
+}
+.standardDetails {
+    margin-left: 15px;
+}
+.number {
+    display: inline;
+    font-weight: bold;
+}
+.statement {
+    display: inline;
+}

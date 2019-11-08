@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+
+  <title>Browse Standards By Topic</title>
+  <link rel="icon" href="http://ab-solutions.academicbenchmarks.com/Certica/certicalogo.png">
+
+  <!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <!-- jQuery: https://jquery.com/ - license: http://www.apache.org/licenses/LICENSE-2.0 -->
+
+  <!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/hmac-sha256.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/enc-base64.min.js"></script>
+  <!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
+
+  <!-- material components: https://material.io/components/ - license: https://github.com/material-components/material-components-web/blob/master/LICENSE -->
+  <link href="node_modules/@material/button/dist/mdc.button.min.css" rel="stylesheet">
+  <link href="node_modules/@material/select/dist/mdc.select.min.css" rel="stylesheet">
+  <script src="node_modules/@material/select/dist/mdc.select.min.js"></script>
+  <link href="node_modules/@material/icon-button/dist/mdc.icon-button.min.css" rel="stylesheet">
+  <script src="node_modules/@material/icon-button/dist/mdc.iconButton.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <!-- material components: https://material.io/components/ - license: https://github.com/material-components/material-components-web/blob/master/LICENSE -->
+
+  <!-- TinySort: http://tinysort.sjeiti.com/ - license: https://github.com/Sjeiti/TinySort/blob/master/LICENSE (MIT) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinysort/1.5.6/jquery.tinysort.min.js"></script>
+  <!-- TinySort: http://tinysort.sjeiti.com/ - license: https://github.com/Sjeiti/TinySort/blob/master/LICENSE (MIT) -->
+
+  <link rel="stylesheet" type="text/css" href="topicsBrowser.css">
+
+</head>
+
+<body onload='init()'>
+
+  <div class="page">
+    <div class="struct banner partnerData">
+      <div class="partnerCell">
+        <div class="partner">
+          <div class="authID">
+            <div class="fields">
+              <h2>Partner A:</h2> <input type="text" class="partnerID" onKeyUp="init()" onblur="init()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="partnerCell">
+        <div class="partner">
+          <div class="authKey">
+            <div class="fields">
+              <h2>Key:</h2> <input type="password" class="partnerKey" onKeyUp="init()" onblur="init()">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="goButton">
+        <div class="helpArea">
+          <a href="./ReadMe.html" target="_blank"><i class="material-icons mdc-icon-button__icon">help_outline</i></a>
+        </div>
+      </div>
+    </div>
+    <div class="struct banner highData">
+      <div class="topicSettings">
+        <div class="subjectSelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updateSubject()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Subject</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+        <div class="gradeSelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updateGrade()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Grade Band Or Course</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="struct banner topicData">
+      <div class="topicSettings">
+        <div class="topicSelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updateTopic()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Theme</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+        <div class="subtopicSelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updateSubtopic()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Topic</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="struct banner documentData">
+      <div class="documentSettings">
+        <div class="authoritySelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updateAuthority()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Authority</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+        <div class="publicationSelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updatePublication()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Publication</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+        <div class="documentSelect">
+          <div class="mdc-select">
+            <i class="mdc-select__dropdown-icon"></i>
+            <select class="mdc-select__native-control" onchange="updateDocument()">
+              <option value="" disabled selected></option>
+            </select>
+            <label class="mdc-floating-label">Document</label>
+            <div class="mdc-line-ripple"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="struct resultsArea">
+      <div class="content">
+        <div class="data">
+          <div class="header">
+            <div class="output">Standards</div>
+          </div>
+          <div class="results">
+            <div class="output summary">Waiting</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="text/javascript" src="topicsBrowser.js"></script>
+
+</body>
+
+</html>
