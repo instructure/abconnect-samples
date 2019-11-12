@@ -123,20 +123,37 @@ function identifyFacets() {
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      recordSupportedFacets(data);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error identifying facets. ' + req.responseText);
-      }
-    }
-  );
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        recordSupportedFacets(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error identifying facets. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // recordSupportedFacets - determine what facets are supported by this account
@@ -240,20 +257,37 @@ function loadFacets() {
   //
   $('.overlay').show();
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      populateFacets(data);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error loading facets from AB Connect. ' + req.responseText);
-      }
-    }
-  );
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        populateFacets(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error loading facets from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // populateFacets - function to load the facet lists to the UI
@@ -367,8 +401,15 @@ function facetComparator(list) {
       
     } else if (list === '.types') { // sort by asset_type
       return function(a, b) {
-        var upperA = a.data.asset_type.toUpperCase();
-        var upperB = b.data.asset_type.toUpperCase();
+        //
+        // workaround for an issue with consumer/owner facets #AC-1583
+        //
+        let aa = a.data.asset_type;
+        if (!aa) aa = a.data;
+        let bb = b.data.asset_type;
+        if (!bb) bb = b.data;
+        var upperA = aa.toUpperCase();
+        var upperB = bb.toUpperCase();
         if (upperA < upperB) return -1;
         else if (upperA > upperB) return 1;
         else return 0;
@@ -482,20 +523,39 @@ function updateFacetWidgetCounts(group) {
   sourceUrl += authenticationParameters(); // do the auth bit
   //
   // request the data
+  //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      setFacetCount(data, group, facetName);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error updating the facet frequency counts from AB Connect. ' + req.responseText);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        setFacetCount(data, group, facetName);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error updating the facet counts from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // setFacetCount - update the facet counts on the specified widget
@@ -562,8 +622,15 @@ function findFacetCount(data, ID, facetName) {
         // we found the value we need:
         //
         if (facetName === 'asset_types') {
+          // workaround for an issue with consumer/owner facets #AC-1583
+          if (object.data.asset_type) {
           if (object.data.asset_type === ID) {
             return object.count; // return it
+            }
+          } else if (object.data) {
+            if (object.data === ID) {
+              return object.count; // return it
+            }
           }
         } else if (bCustom) {
           if (object.data === ID) {

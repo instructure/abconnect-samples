@@ -65,26 +65,43 @@ function updateArtifactFaceting() {
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status,response)
-      {
-      recordArtifacts(data,response);
-      },
-    error: function(req, status, error)
-      {
-      alert('Error getting the artifacts from AB Connect. ' + req.responseText);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        recordArtifacts(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Error getting the artifacts from AB Connect. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // recordArtifacts - record the artifacts
 //    data - AJAX response
-//    response - 
 //
-function recordArtifacts(data, response) {
+function recordArtifacts(data) {
   //
   // start fresh (in case there were multiple lookups)
   //

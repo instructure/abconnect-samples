@@ -1,6 +1,8 @@
 const HOST = 'https://api.academicbenchmarks.com'
 const STANDARDS_URL = HOST + "/rest/v4/standards";
 const TOPICS_URL = HOST + "/rest/v4/topics";
+const RETRY_LIMIT=5;
+const RETRY_LAG=200;
 
 var gPartnerID = null;
 var gSignature = null;
@@ -49,35 +51,54 @@ function checkTopicsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var topicURL = TOPICS_URL + '?limit=0' + authenticationParameters();
+  var topicURL = TOPICS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
   //
   // request the data
   //
-  $.ajax(
-    {
-    url: topicURL,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status) {
-        gTopicsLicensed = true; // note we can use topics
-        init();
-      },
-    error: function(req, status, error) {
-        if (req.status === 401) { // authorization error - let's figure out what kind
-          if (req.responseJSON.errors && 
-            req.responseJSON.errors[0].detail) {
-              
-            if (req.responseJSON.errors[0].detail === 'Signature is not authorized.') {
-              alert('Invalid partner ID or key.');
-            } else if (req.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') {
-              // not going to do the Topic thing
-              init();
-            } else alert(error);
-          } else alert(error);
-        } else alert(error);
-      }
-    }
-  );
+  $.ajax( 
+    { 
+      url: topicURL,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+          gTopicsLicensed = true; // note we can use topics
+          init();
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 401: // authorization error - let's figure out what kind
+            if (xhr.responseJSON.errors && 
+                xhr.responseJSON.errors[0].detail) {
+                  
+              if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
+                alert('Invalid partner ID or key.');
+              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') { // not going to do the Topic thing
+                init();
+              } else alert(`Unexpected error: ${xhr.responseText}`);
+            } else alert(`Unexpected error: ${xhr.responseText}`);
+            break;
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // init - if we are here, it is all good - get started 
@@ -138,7 +159,7 @@ function standardSelected(currentStandard) {
     // construct the URL to pull the details
     //
     var sourceUrl = STANDARDS_URL + '/' + currentStandard +
-      '?fields[standards]=statement,section,document,education_levels,disciplines,number,parent,utilizations';
+      '?facet_summary=_none&fields[standards]=statement,section,document,education_levels,disciplines,number,parent,utilizations';
     if (gTopicsLicensed) sourceUrl += ',topics,concepts,key_ideas&include=topics,concepts'; // include the topics stuff if topics is licensed
 
     logCall(sourceUrl); // dump URLs to the console to make it easy to see the calls when learning the API
@@ -147,23 +168,39 @@ function standardSelected(currentStandard) {
     //
     // request the data
     //
-    $.ajax(
-      {
-      url: sourceUrl,
-      crossDomain: true,
-      dataType: 'json',
-      success: function(data,status)
-        {
-        PopulateDetails(data);
-        
-        gActiveStandard = currentStandard; // remember where we are
-        },
-      error: function(req, status, error)
-        {
-        alert(error);
-        }
-      }
-    );
+    $.ajax( 
+      { 
+        url: sourceUrl,
+        crossDomain: true, 
+        dataType: 'json', 
+        tryCount: 0, 
+        retryLimit: RETRY_LIMIT,
+        success: function(data,status) {
+          PopulateDetails(data);
+          
+          gActiveStandard = currentStandard; // remember where we are
+          },
+        error: function(xhr, status, error) 
+          { 
+          switch (xhr.status) {
+            case 503: // various resource issues
+            case 504: 
+            case 408: 
+            case 429: 
+              this.tryCount++; 
+              if (this.tryCount <= this.retryLimit) { //try again 
+                var ajaxContext = this; 
+                setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+              } else { 
+                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              } 
+              return; 
+            default: 
+              alert(`Unexpected error: ${xhr.responseText}`);
+          } 
+        } 
+      } 
+    ); 
   }
 }
 //

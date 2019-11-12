@@ -9,8 +9,9 @@
   "author": "George Menyhert <gmenyhert@certicasolutions.com>",
   "license": "ISC",
   "dependencies": {
-    "commander": "^2.9.0",
-    "exceljs": "^0.3.0",
+    "bottleneck": "^2.19.2",
+    "commander": "^2.20.0",
+    "exceljs": "^1.13.0",
     "node-rest-client": "^3.1.0",
     "winston": "^2.2.0"
   }

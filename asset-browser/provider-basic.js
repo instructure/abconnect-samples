@@ -59,7 +59,7 @@ function getBasicItem(asset, title, subjects, grades) {
   // add links to the content - but only if the link is available
   //
   var contentLink = '';
-  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
     contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   return `
@@ -85,7 +85,7 @@ function getBasicItem(asset, title, subjects, grades) {
 //
 function getExpandItem(asset, title, subjects, grades) {
   var contentLink = '';
-  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
     contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   //
@@ -123,7 +123,7 @@ function getExpandItem(asset, title, subjects, grades) {
 //
 function getTileItem(asset, title, subjects, grades, i) {
   var contentLink = '';
-  if (asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.content_url && asset.attributes.custom_attributes.content_url.length) {
     contentLink = `onclick="showContent('${asset.attributes.custom_attributes.content_url[0]}');" style="cursor: pointer;"`;
   }
   return `
@@ -147,7 +147,7 @@ function getTileItem(asset, title, subjects, grades, i) {
 function getImageClass(asset, number) {
   var imageUrl = '';
   
-  if (asset.attributes.custom_attributes.image_url && asset.attributes.custom_attributes.image_url.length > 0 &&
+  if (asset.attributes.custom_attributes && asset.attributes.custom_attributes.image_url && asset.attributes.custom_attributes.image_url.length > 0 &&
       asset.attributes.custom_attributes.image_url[0] && asset.attributes.custom_attributes.image_url[0].length > 0) {  // if there is a proper definition in AB Connect, use it
     imageUrl = `url(${asset.attributes.custom_attributes.image_url[0]}), url(img/logo.png)`;
   } else {                                                                  // fallback to the logo
@@ -256,41 +256,77 @@ function showAsset(event, guid) {
     //
     // request the concepts and add it to the display
     //
-    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=concepts&include=concepts';
+    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=concepts&include=concepts&facet_summary=_none';
     sourceUrl += authenticationParameters(); // add the auth stuff
     $.ajax(
-      {
-      url: sourceUrl,
-      crossDomain: true,
-      dataType: 'json',
-      success: function(data,status)
-        {
-        populateConcepts(data, parentElement);
-        },
-      error: function(req, status, error)
-        {
-        alert(error);
-        }
-      });
+      { 
+        url: sourceUrl,
+        crossDomain: true, 
+        dataType: 'json', 
+        tryCount: 0, 
+        retryLimit: RETRY_LIMIT,
+        success: function(data,status)
+          {
+          populateConcepts(data, parentElement);
+          },
+        error: function(xhr, status, error) 
+          { 
+          switch (xhr.status) {
+            case 503: // various resource issues
+            case 504: 
+            case 408: 
+            case 429: 
+              this.tryCount++; 
+              if (this.tryCount <= this.retryLimit) { //try again 
+                var ajaxContext = this; 
+                setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+              } else { 
+                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              } 
+              return; 
+            default: 
+              alert(`An error occurred while trying to gather the concepts associated with this item. ${xhr.responseText}`);
+          } 
+        } 
+      } 
+    ); 
     //
     // request the topics and add it to the display
     //
-    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=topics&include=topics';
+    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=topics&include=topics&facet_summary=_none';
     sourceUrl += authenticationParameters(); // add the auth stuff
     $.ajax(
-      {
-      url: sourceUrl,
-      crossDomain: true,
-      dataType: 'json',
-      success: function(data,status)
-        {
-        populateTopics(data, parentElement);
-        },
-      error: function(req, status, error)
-        {
-        alert(error);
-        }
-      });
+      { 
+        url: sourceUrl,
+        crossDomain: true, 
+        dataType: 'json', 
+        tryCount: 0, 
+        retryLimit: RETRY_LIMIT,
+        success: function(data,status)
+          {
+          populateTopics(data, parentElement);
+          },
+        error: function(xhr, status, error) 
+          { 
+          switch (xhr.status) {
+            case 503: // various resource issues
+            case 504: 
+            case 408: 
+            case 429: 
+              this.tryCount++; 
+              if (this.tryCount <= this.retryLimit) { //try again 
+                var ajaxContext = this; 
+                setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+              } else { 
+                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              } 
+              return; 
+            default: 
+              alert(`An error occurred while trying to gather the topics associated with this item. ${xhr.responseText}`);
+          } 
+        } 
+      } 
+    ); 
   }
   //
   // add a placeholder for the alignments
@@ -307,22 +343,40 @@ function showAsset(event, guid) {
   gStandardsList = []; // clear the list of aligned standards
   var dispositionSearch = "disposition in ('accepted', 'predicted')";
   if (!gIncludePredicted) dispositionSearch = "disposition EQ 'accepted'";
-  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(" + dispositionSearch + ")&limit=" + STANDARDS_PAGE_SIZE;
+  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(" + dispositionSearch + ")&facet_summary=_none&limit=" + STANDARDS_PAGE_SIZE;
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      populateAlignments(data, parentElement);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+        populateAlignments(data, parentElement);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`An error occurred while trying to gather the alignments associated with this item. ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
   //
   // load the details screen and if it is a dialog, pop the dialog open
   //
@@ -439,19 +493,37 @@ function populateAlignments(data, parentElement) {
     var sourceUrl = data.links.next;
     sourceUrl += authenticationParameters(); // add the auth stuff
     $.ajax(
-      {
-      url: sourceUrl,
-      crossDomain: true,
-      dataType: 'json',
-      success: function(data,status)
-        {
-        populateAlignments(data, parentElement);
-        },
-      error: function(req, status, error)
-        {
-        alert(error);
-        }
-      });
+      { 
+        url: sourceUrl,
+        crossDomain: true, 
+        dataType: 'json', 
+        tryCount: 0, 
+        retryLimit: RETRY_LIMIT,
+        success: function(data,status)
+          {
+          populateAlignments(data, parentElement);
+          },
+        error: function(xhr, status, error) 
+          { 
+          switch (xhr.status) {
+            case 503: // various resource issues
+            case 504: 
+            case 408: 
+            case 429: 
+              this.tryCount++; 
+              if (this.tryCount <= this.retryLimit) { //try again 
+                var ajaxContext = this; 
+                setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+              } else { 
+                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              } 
+              return; 
+            default: 
+              alert(`An error occurred while trying to gather the alignments associated with this item. ${xhr.responseText}`);
+          } 
+        } 
+      } 
+    ); 
       
     return;
   }
@@ -486,22 +558,40 @@ function populateAlignments(data, parentElement) {
       //
       // request the standards and add it to the display
       //
-      var sourceUrl = STANDARDS_URL + "?fields[standards]=statement,number,document&filter[standards]=(id in (" + csvList + "))&limit=" + PAYLOAD_LIMIT;
+      var sourceUrl = STANDARDS_URL + "?fields[standards]=statement,number,document&facet_summary=_none&filter[standards]=(id in (" + csvList + "))&limit=" + PAYLOAD_LIMIT;
       sourceUrl += authenticationParameters(); // add the auth stuff
       $.ajax(
-        {
-        url: sourceUrl,
-        crossDomain: true,
-        dataType: 'json',
-        success: function(data,status)
-          {
-          renderAlignments(data, parentElement);
-          },
-        error: function(req, status, error)
-          {
-          alert(error);
-          }
-        });
+        { 
+          url: sourceUrl,
+          crossDomain: true, 
+          dataType: 'json', 
+          tryCount: 0, 
+          retryLimit: RETRY_LIMIT,
+          success: function(data,status)
+            {
+            renderAlignments(data, parentElement);
+            },
+          error: function(xhr, status, error) 
+            { 
+            switch (xhr.status) {
+              case 503: // various resource issues
+              case 504: 
+              case 408: 
+              case 429: 
+                this.tryCount++; 
+                if (this.tryCount <= this.retryLimit) { //try again 
+                  var ajaxContext = this; 
+                  setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+                } else { 
+                  alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+                } 
+                return; 
+              default: 
+                alert(`An error occurred while trying to gather the standards details. ${xhr.responseText}`);
+            } 
+          } 
+        } 
+      ); 
       
       gAlignmentDetailsCallCount++; // note the pending call
       standardsList = []; // clear the list and start again
@@ -626,35 +716,60 @@ function checkImageAndContentURL() {
   //
   // request the image_url and content_url fields for an asset
   //
-  var sourceUrl = `https://api.academicbenchmarks.com/rest/v4/assets?limit=1&fields[assets]=image_url,content_url&partner.id=${Provider.ID}&auth.signature=${encodeURIComponent(Provider.signature)}&auth.expires=${Provider.expires}`;
+  var sourceUrl = `https://api.academicbenchmarks.com/rest/v4/assets?facet_summary=_none&limit=1&fields[assets]=image_url,content_url&partner.id=${Provider.ID}&auth.signature=${encodeURIComponent(Provider.signature)}&auth.expires=${Provider.expires}`;
   //
   // request the data
   //
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status) {
-        gImageAndContentAvailable = true; // note we can use the URL fields
-        
-        if (authenticate) {  // if the auth function is loaded, initialize the launch process
-          authenticate();
-        } else {              // ask the system to launch it on page load
-          window.onload = function() {
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status)
+        {
+          gImageAndContentAvailable = true; // note we can use the URL fields
+          
+          if (authenticate) {  // if the auth function is loaded, initialize the launch process
             authenticate();
-          };
-        }
-      },
-    error: function(req, status, error) { // whatever the error, just don't use images
-        if (authenticate) {  // if the auth function is loaded, initialize the launch process
-          authenticate();
-        } else {              // ask the system to launch it on page load
-          window.onload = function() {
-            authenticate();
-          };
-        }
-      }
-    }
-  );
+          } else {              // ask the system to launch it on page load
+            window.onload = function() {
+              authenticate();
+            };
+          }
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else {  // whatever the error, just don't use images
+              if (authenticate) {  // if the auth function is loaded, initialize the launch process
+                authenticate();
+              } else {              // ask the system to launch it on page load
+                window.onload = function() {
+                  authenticate();
+                };
+              }
+            } 
+            return; 
+          default:  // whatever the error, just don't use images
+            if (authenticate) {  // if the auth function is loaded, initialize the launch process
+              authenticate();
+            } else {              // ask the system to launch it on page load
+              window.onload = function() {
+                authenticate();
+              };
+            }
+        } 
+      } 
+    } 
+  ); 
 }

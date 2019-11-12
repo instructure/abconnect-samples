@@ -2,6 +2,8 @@ const HOST = 'https://api.academicbenchmarks.com'
 const ASSETS_URL = HOST + "/rest/v4/assets";
 const STANDARDS_URL = HOST + "/rest/v4/standards";
 const STANDARDS_PAGE_SIZE = 100;
+const RETRY_LIMIT=5;
+const RETRY_LAG=200;
 
 jQuery.support.cors = true;
 //
@@ -32,21 +34,37 @@ function initAuthoritySelector() {
   var sourceUrl = STANDARDS_URL + '?facet=document.publication.authorities&facet_summary=document.publication.authorities&limit=0';
   logCall(sourceUrl, "Get the list of authorities in this account's license");
   sourceUrl += authenticationParameters(); // add the auth stuff
-  $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      loadAuthorities(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    }
-  );
+  $.ajax( 
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+          loadAuthorities(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  ); 
 }
 //
 // loadAuthorities - load the authorities into the select region
@@ -102,23 +120,40 @@ function findAsset(searchText) {
   //
   // search for assets
   //
-  var sourceUrl = ASSETS_URL + "?filter[assets]=(" + encodeURIComponent(filter) + ")&limit=1&fields[assets]=title,client_id,id"; // pull the first asset that matches the criteria
+  var sourceUrl = ASSETS_URL + "?filter[assets]=(" + encodeURIComponent(filter) + ")&limit=1&facet_summary=_none&fields[assets]=title,client_id,id"; // pull the first asset that matches the criteria
   logCall(sourceUrl, "Find assets that match the search text on the client_id, AB GUID or in the text fields.");
   sourceUrl += authenticationParameters(); // add the auth stuff
-  $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      showAsset(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error + JSON.stringify(req.responseJSON));
-      }
-    });
+  $.ajax( 
+    { 
+      url: sourceUrl,
+      crossDomain: true, 
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+          showAsset(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  );
 }
 //
 // showAsset - process the matching asset response
@@ -168,28 +203,45 @@ function showAlignments(guid) {
   logCall(sourceUrl, "Find aligned standards (accepted and predicted) in the specified authority.");
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-        //
-        // if the first call returns no data, note that there are no alignments
-        //
-        if (!data.data.length) { // no alignments
-          $('.alignmentList').text('No Alignments'); // since alignments are typically critical, we explicitly call it out if the alignments don't exist
-          return;
-        }
-        $('.alignmentList').empty(); // clear the list so we can start to add to it
+    { 
+      url: sourceUrl,
+      crossDomain: true,
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+          //
+          // if the first call returns no data, note that there are no alignments
+          //
+          if (!data.data.length) { // no alignments
+            $('.alignmentList').text('No Alignments'); // since alignments are typically critical, we explicitly call it out if the alignments don't exist
+            return;
+          }
+          $('.alignmentList').empty(); // clear the list so we can start to add to it
 
-        populateAlignments(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    });
+          populateAlignments(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  );
 }
 //
 // populateAlignments - process the response from the alignment request
@@ -207,23 +259,40 @@ function populateAlignments(data) {
   //
   // request the standards and add it to the display
   //
-  var sourceUrl = STANDARDS_URL + "?fields[standards]=statement,number,document&filter[standards]=(id in (" + csvList + "))&limit=" + STANDARDS_PAGE_SIZE;
+  var sourceUrl = STANDARDS_URL + "?fields[standards]=statement,number,document&facet_summary=_none&filter[standards]=(id in (" + csvList + "))&limit=" + STANDARDS_PAGE_SIZE;
   logCall(sourceUrl, "Get the details of the aligned standards.");
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
-    {
-    url: sourceUrl,
-    crossDomain: true,
-    dataType: 'json',
-    success: function(data,status)
-      {
-      renderAlignments(data);
-      },
-    error: function(req, status, error)
-      {
-      alert(error);
-      }
-    });
+    { 
+      url: sourceUrl,
+      crossDomain: true,
+      dataType: 'json', 
+      tryCount: 0, 
+      retryLimit: RETRY_LIMIT,
+      success: function(data,status) {
+          renderAlignments(data);
+        },
+      error: function(xhr, status, error) 
+        { 
+        switch (xhr.status) {
+          case 503: // various resource issues
+          case 504: 
+          case 408: 
+          case 429: 
+            this.tryCount++; 
+            if (this.tryCount <= this.retryLimit) { //try again 
+              var ajaxContext = this; 
+              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+            } else { 
+              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+            } 
+            return; 
+          default: 
+            alert(`Unexpected error: ${xhr.responseText}`);
+        } 
+      } 
+    } 
+  );
   //
   // if there are more standards in the paging, request the next page and exit
   //
@@ -232,19 +301,36 @@ function populateAlignments(data) {
     logCall(sourceUrl, "Get the next page of aligned standards.");
     sourceUrl += authenticationParameters(); // add the auth stuff
     $.ajax(
-      {
-      url: sourceUrl,
-      crossDomain: true,
-      dataType: 'json',
-      success: function(data,status)
-        {
-        populateAlignments(data);
-        },
-      error: function(req, status, error)
-        {
-        alert(error);
-        }
-      });
+      { 
+        url: sourceUrl,
+        crossDomain: true,
+        dataType: 'json', 
+        tryCount: 0, 
+        retryLimit: RETRY_LIMIT,
+        success: function(data,status) {
+            populateAlignments(data);
+          },
+        error: function(xhr, status, error) 
+          { 
+          switch (xhr.status) {
+            case 503: // various resource issues
+            case 504: 
+            case 408: 
+            case 429: 
+              this.tryCount++; 
+              if (this.tryCount <= this.retryLimit) { //try again 
+                var ajaxContext = this; 
+                setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
+              } else { 
+                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              } 
+              return; 
+            default: 
+              alert(`Unexpected error: ${xhr.responseText}`);
+          } 
+        } 
+      } 
+    );
   }
 }
 //
