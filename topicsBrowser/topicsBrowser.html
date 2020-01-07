@@ -19,8 +19,10 @@
   <!-- CryptoJS: https://code.google.com/archive/p/crypto-js/ - license: https://opensource.org/licenses/BSD-3-Clause -->
 
   <!-- material components: https://material.io/components/ - license: https://github.com/material-components/material-components-web/blob/master/LICENSE -->
-  <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/material-components-web/0.44.1/material-components-web.min.css'>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/0.44.1/material-components-web.min.js"></script>
+  <link rel='stylesheet'
+    href='https://cdnjs.cloudflare.com/ajax/libs/material-components-web/0.44.1/material-components-web.min.css'>
+  <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/material-components-web/0.44.1/material-components-web.min.js"></script>
   <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
   <!-- material components: https://material.io/components/ - license: https://github.com/material-components/material-components-web/blob/master/LICENSE -->
 
@@ -44,7 +46,7 @@
         <div class="partner">
           <div class="authID">
             <div class="fields">
-              <h2>Partner A:</h2> <input type="text" class="partnerID" onKeyUp="init()" onblur="init()">
+              <h2>Partner A:</h2> <input type="text" class="partnerID">
             </div>
           </div>
         </div>
@@ -52,8 +54,11 @@
       <div class="partnerCell">
         <div class="partner">
           <div class="authKey">
-            <div class="fields">
-              <h2>Key:</h2> <input type="password" class="partnerKey" onKeyUp="init()" onblur="init()">
+            <div class="fields" style='display: inline'>
+              <h2>Key:</h2> <input type="password" class="partnerKey">
+            </div>
+            <div style='display: inline'>
+              <button class="mdc-icon-button material-icons" onclick="init()">refresh</button>
             </div>
           </div>
         </div>
