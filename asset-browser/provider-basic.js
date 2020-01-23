@@ -256,7 +256,7 @@ function showAsset(event, guid) {
     //
     // request the concepts and add it to the display
     //
-    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=concepts&include=concepts&facet_summary=_none';
+    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=concepts&include=concepts';
     sourceUrl += authenticationParameters(); // add the auth stuff
     $.ajax(
       { 
@@ -293,7 +293,7 @@ function showAsset(event, guid) {
     //
     // request the topics and add it to the display
     //
-    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=topics&include=topics&facet_summary=_none';
+    sourceUrl = ASSETS_URL + '/' + asset.id + '?fields[assets]=topics&include=topics';
     sourceUrl += authenticationParameters(); // add the auth stuff
     $.ajax(
       { 
@@ -343,7 +343,7 @@ function showAsset(event, guid) {
   gStandardsList = []; // clear the list of aligned standards
   var dispositionSearch = "disposition in ('accepted', 'predicted')";
   if (!gIncludePredicted) dispositionSearch = "disposition EQ 'accepted'";
-  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(" + dispositionSearch + ")&facet_summary=_none&limit=" + STANDARDS_PAGE_SIZE;
+  sourceUrl = ASSETS_URL + '/' + asset.id + "/standards?filter[standards]=(" + dispositionSearch + ")&limit=" + STANDARDS_PAGE_SIZE;
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
     { 

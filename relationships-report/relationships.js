@@ -127,7 +127,7 @@ function getSource(row, rowNumber, responses) {
   //
   // Request the data for this standard
   //
-  let sURL = BASE_URL + "/rest/v4/standards/" + guid + "?facet_summary=_none&fields[standards]=id,section,number,statement,origins,derivatives";
+  let sURL = BASE_URL + "/rest/v4/standards/" + guid + "?fields[standards]=id,section,number,statement,origins,derivatives";
   if (tools.arguments().type === TOPIC) {
     sURL += ",topics";
   }
