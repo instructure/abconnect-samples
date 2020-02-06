@@ -16,7 +16,7 @@ my $uri = URI->new();
 $uri->scheme('https');
 $uri->host('api.academicbenchmarks.com');
 $uri->port(443);
-$uri->path('rest/v4/standards');
+$uri->path('rest/v4.1/standards');
 $uri->query_form(
   'partner.id'     => $partner_id,
   'auth.signature' => $signature,

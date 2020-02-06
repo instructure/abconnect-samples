@@ -9,7 +9,7 @@
     $authExpires = time() + 3600;             // Seconds since epoch. Example is 1 hour.  Keep this shorter due to web exposure.
     $userID      = 'bob';                     // Partner defined. May be an empty string.
 
-    $url = 'https://api.academicbenchmarks.com/rest/v4/standards?';
+    $url = 'https://api.academicbenchmarks.com/rest/v4.1/standards?';
 
     $url .= 'partner.id=' . $partnerID;
     $message = $authExpires . "\n" . $userID . "\nGET"; // read only signature to minimize security risks with web client exposure.

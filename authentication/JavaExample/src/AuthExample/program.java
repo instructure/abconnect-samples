@@ -40,7 +40,7 @@ public class program {
       // pack the signature and other auth parameters in URL
       //
       String targetURL = String.format(
-        "https://api.academicbenchmarks.com/rest/v4/standards?partner.id=%s&auth.signature=%s&auth.expires=%d&user.id=%s",
+        "https://api.academicbenchmarks.com/rest/v4.1/standards?partner.id=%s&auth.signature=%s&auth.expires=%d&user.id=%s",
         URLEncoder.encode(partnerID, "UTF-8"),
         URLEncoder.encode(signature, "UTF-8"),
         expires,
