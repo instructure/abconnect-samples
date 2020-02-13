@@ -11,8 +11,7 @@ for the code that launches the browser.  The rest of the code supplies the funct
 ## Notes
 1. The embeddable widget API calls are not logged.  If you use the embeddable widget, you don't need to understand the details of the calls.  However, if you would like to seem them, check out
 the RelationshipBrowser.
-2. This sample requires a few third-party libraries to work. Most are referenced in their hosted locations in the HTML file but CryptoJS is not hosted online so it has been included here
-in the rollups and components folders. See the <script> statements at the top of the HTML file for details on the location of the project and licensing.
+2. This sample requires a few third-party libraries to work.  See the <script> statements at the top of the HTML file for details on the location of the project and licensing.
 
 ## Known Issues
 1. Internet Explorer users will need to enable "cross domain" scripting.  To do this, go to Internet Options, Security, Custom Level, scroll down to "Miscellaneous" and set

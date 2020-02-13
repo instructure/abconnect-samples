@@ -1,6 +1,6 @@
 const HOST = 'https://api.academicbenchmarks.com'
-const STANDARDS_URL = HOST + "/rest/v4/standards";
-const TOPICS_URL = HOST + "/rest/v4/topics";
+const STANDARDS_URL = HOST + "/rest/v4.1/standards";
+const TOPICS_URL = HOST + "/rest/v4.1/topics";
 const RETRY_LIMIT=5;
 const RETRY_LAG=200;
 
@@ -51,7 +51,7 @@ function checkTopicsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var topicURL = TOPICS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
+  var topicURL = TOPICS_URL + '?limit=0' + authenticationParameters();
   //
   // request the data
   //
