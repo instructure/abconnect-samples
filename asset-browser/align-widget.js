@@ -198,9 +198,9 @@ function initStandardsBrowser() {
   var sFilter = buildFilter(['standardsAligned', 'standardsDoc']);
   if (sFilter) {
     if (!gIncludePredicted) {
-      sFilter = sFilter.substr(0, sFilter.length-1) + " AND standards.disposition EQ 'accepted')";
+      sFilter = sFilter.substr(0, sFilter.length-1) + " AND alignments.meta.disposition EQ 'accepted')";
     } else {
-      sFilter = sFilter.substr(0, sFilter.length-1) + " AND standards.disposition in ('accepted', 'predicted'))";
+      sFilter = sFilter.substr(0, sFilter.length-1) + " AND alignments.meta.disposition in ('accepted', 'predicted'))";
     }
 
     var leadin = "&filter[assets]=(";
