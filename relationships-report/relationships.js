@@ -15,11 +15,11 @@ tools.init();
 tools.setDelay(0);
 ///tools.LOGGER().level = 'debug';
 
-const PEER = 'peer';
-const DERIVATIVE = 'derivative';
-const PEER_DERIVATIVE = 'peer_derivative';
-const TOPIC = 'topic';
-const ORIGIN = 'origin';
+const PEERS = 'peers';
+const DERIVATIVES = 'derivatives';
+const PEER_DERIVATIVES = 'peer_derivatives';
+const TOPICS = 'topics';
+const ORIGINS = 'origins';
 const NO = 'N';
 const YES = 'Y';
 const BASE_URL = 'https://api.academicbenchmarks.com';
@@ -43,7 +43,7 @@ tools.arguments()
   .option('-a, --auth <authentication string>', 'The query string of the authentication information starting with &.  It must contain a value for partner.id, ' +
             'auth.signature and auth.expires.  The values must be properly URI encoded.  It may optionally include a value for user.id. Including authentication details is required.')
   .option('-d, --document <GUID>', 'The GUID of the destination document. Required.')
-  .option('-t, --type <relationship_type>', 'The type of relationship you want to walk.  Options: peer, derivative, peer_derivative, origin, topic.', 'peer')
+  .option('-t, --type <relationship_type>', 'The type of relationship you want to walk.  Options: peers, derivatives, peer_derivatives, origins, topics.', 'peers')
   .option('-o, --output <output_file>', 'The output filename. Default: out.xlsx', 'out.xlsx')
   .action(function(loc) {
   inputFile = loc;
@@ -53,7 +53,7 @@ tools.arguments()
 // Abort if the required arguments are not present
 //
 if (!tools.arguments().auth || !tools.arguments().output || !inputFile || !tools.arguments().document ||
-    !['peer', 'derivative', 'peer_derivative', 'origin', 'topic'].includes(tools.arguments().type)) {
+    ![PEERS, DERIVATIVES, PEER_DERIVATIVES, ORIGINS, TOPICS].includes(tools.arguments().type)) {
   tools.arguments().help();
 }
 tools.LOGGER().debug('Auth: ' + tools.arguments().auth);
@@ -94,10 +94,10 @@ catch (error) {
 //    Column D is the destination grade
 //    Column E is the destination number (enhanced)
 //    Column F is the destination standard (combined_descr)
-//      Column G is the source GUID (repeated from the first worksheet).
-//      Column H is the destination GUID.
-//      Column I is the same_text flag - only used for derivative/origin/peer_derivative type relationships.
-//      Column J is the same_concepts flag - only used for derivative/origin/peer_derivative type relationships.
+//    Column G is the source GUID (repeated from the first worksheet).
+//    Column H is the destination GUID.
+//    Column I is the same_text flag - only used for derivative/origin/peer_derivative type relationships.
+//    Column J is the same_concepts flag - only used for derivative/origin/peer_derivative type relationships.
 //
 var Excel = require('exceljs');
 var gWorkbook = new Excel.Workbook();
@@ -146,12 +146,12 @@ async function processFile() {
 
   for (guid of guids) {
 
-    // Fields we're requesting from the API. Include topics if they're needed
+    // Fields we're requesting from the API.
     const fields = 'id,section,number,statement,origins,derivatives' + (
-      tools.arguments().type == TOPIC
-        ? ',topics' 
+      tools.arguments().type == TOPICS
+        ? ',topics' //Include topics if they're needed
         : ''
-    )
+     )
 
     // Keep track of if we found the GUID provided. Wish there was a cleaner way
     // to pass this up through the scheduler
@@ -163,45 +163,31 @@ async function processFile() {
         `${BASE_URL}/rest/v4.1/standards/${guid}?fields[standards]=${fields}`
       ).catch(error => {
         if(error.message == 401){
-          console.log("There was an error with your authentication.")
+          tools.LOGGER().error("There was an error with your authentication.")
           process.exit(1)
         }
         else if(error.message == 404){
           standard_not_found = true
         }
         else {
-          console.log(error)
+          tools.LOGGER().error(error)
           process.exit(2)
         }
       })
     )
 
     if(standard_not_found){
-      console.log(`GUID not found. GUID=${guid}`)
+      tools.LOGGER().error(`GUID not found. GUID=${guid}`)
       return
     }
-    console.log(`Processing GUID=${guid}`)
-
-    // Calculate the filter
-    let filter = `(document.guid eq ${tools.arguments().document} and `
-    
-    if (tools.arguments().type === PEER) {
-      filter += "peers.id";
-    } else if (tools.arguments().type === DERIVATIVE) {
-      filter += "origins.id";
-    } else if (tools.arguments().type === ORIGIN) {
-      filter += "derivatives.id";
-    } else if (tools.arguments().type === PEER_DERIVATIVE) {
-      filter += "peer_derivatives.id";
-    }
-    filter += ` eq '${guid}')`
+    tools.LOGGER().info(`Processing GUID=${guid} ${guids.indexOf(guid)+1} of ${guids.length}`)
 
     // Loop through the sibling data for the standard
     let siblings = []
 
     // When we're examining topic relationships, we query all topics on the original for related standards
     // This means there is an extra loop while collecting siblings
-    if(tools.arguments().type == TOPIC){
+    if(tools.arguments().type == TOPICS){
 
       // Collect the GUIDs of the topics
       let topics = []
@@ -227,6 +213,9 @@ async function processFile() {
       siblings = [...related_standards.values()]
     }
     else {
+      // Calculate the filter
+      let filter = `(document.publication.authorities.guid eq ${tools.arguments().authority} and ${tools.arguments().type}.id eq '${guid}')`;
+
       // Collect the siblings of our original standard
       for await (const response of api.pager(
         `${BASE_URL}/rest/v4.1/standards?fields[standards]=${fields}&filter[standards]=${filter}`)
@@ -249,7 +238,7 @@ async function processFile() {
            enhanced: ''
          },
          statement: {
-           combined_descr: 'Source GUID not found: ' + guid
+           combined_descr: 'No related standards were found for GUID: ' + guid
          }
        },
        relationships: {
@@ -278,8 +267,8 @@ async function processFile() {
 
     // Write the collected data to the worksheet
     siblings.forEach(sibling => {
-      console.log(sibling)
-      console.log(`Processing sibling guid=${sibling.id}`)
+      tools.LOGGER().debug(sibling)
+      tools.LOGGER().debug(`Processing sibling guid=${sibling.id}`)
       dumpRow(standard_json.data, sibling, guid, sibling.id)
     })
   }
@@ -329,15 +318,15 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
   gOutSheet.getCell(gOutRow,7).value = sourceGUID;
   gOutSheet.getCell(gOutRow,8).value = siblingGUID;
   // log the same_text, same_concepts
-  if (tools.arguments().type === PEER ||
-        tools.arguments().type === TOPIC) { // concept doesn't exist for peers or topics
-  } else if (tools.arguments().type === DERIVATIVE) { // if we are looking for derivatives, then we are only concerned about the sameness between the origin and this derivative
+  if (tools.arguments().type === PEERS ||
+        tools.arguments().type === TOPICS) { // concept doesn't exist for peers or topics
+  } else if (tools.arguments().type === DERIVATIVES) { // if we are looking for derivatives, then we are only concerned about the sameness between the origin and this derivative
     gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.origins.data, source.id);
     gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.origins.data, source.id);
-  } else if (tools.arguments().type === ORIGIN) { // if we are looking for origins, then we are only concerned about the sameness between the origin and this derivative
+  } else if (tools.arguments().type === ORIGINS) { // if we are looking for origins, then we are only concerned about the sameness between the origin and this derivative
     gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.derivatives.data, source.id);
     gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.derivatives.data, source.id);
-  } else if (tools.arguments().type === PEER_DERIVATIVE) {
+  } else if (tools.arguments().type === PEER_DERIVATIVES) {
     //
     // if we are looking for peer_derivatives, we are concerned about this standard's (what we call here the "source")
     // sameness with the true origin as well as the peer_derivative's sameness with origin
