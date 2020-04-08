@@ -100,7 +100,7 @@ a.mdc-list-item__end-detail.material-icons {
   cursor: pointer;
   padding: 0 0 0 24px;
   vertical-align: middle;
-  margin-right: 0;
+  margin-left: auto;
 }
 
 summary {
@@ -233,7 +233,6 @@ summary::after {
 
 .buttonArea .mdc-fab {
   margin: 16px 0 0 auto;
-  background-color: #1675d2;
 }
 
 .conceptsCloud .chips {
@@ -256,13 +255,11 @@ summary::after {
 .resultsHeader {
   display: flex;
   margin: 0 16px;
-  visibility: hidden;
 }
 
 .resultsFooter {
   display: flex;
   margin: 0 16px;
-  visibility: hidden;
 }
 
 .firstPage {
@@ -297,16 +294,12 @@ summary::after {
   cursor: pointer;
 }
 
-.pageSize a:hover {
+.pageSize a.active {
+  font-size: 150%
+}
+
+.pageSize a.active:hover {
   text-decoration: underline;
-}
-
-.page25 {
-  font-size: 150%;
-}
-
-.pageSize a.page25:hover {
-  text-decoration: none;
 }
 
 .position {
@@ -360,16 +353,16 @@ summary::after {
   width: 600px;
 }
 
-.viewList {
-  cursor: pointer;
+.asset-attribute-value {
+  font-size: .875rem;
+  line-height: 1.25rem;
 }
 
-.viewExp {
-  cursor: pointer;
-}
-
-.viewGrid {
+.viewLayout .active {
   color: #bdbdbd;
+}
+.viewLayout *:not(.active) {
+  cursor: pointer;
 }
 
 .viewLayout {

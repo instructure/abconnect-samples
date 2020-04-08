@@ -1,525 +1,1067 @@
-const HOST = 'https://api.academicbenchmarks.com'
-const STANDARDS_URL = HOST + "/rest/v4/standards";
-const TOPICS_URL = HOST + "/rest/v4/topics";
-const ASSETS_URL = HOST + "/rest/v4/assets";
-const ARTIFACTS_URL = HOST + "/rest/v4/artifacts";
-const CONCEPTS_URL = HOST + "/rest/v4/concepts";
-const PROCESSING = 'Processing...';
-const NO_ALIGNMENTS = 'No Alignments';
-const RETRY_LIMIT=5;
-const RETRY_LAG=200;
+const BASE_URL = 'https://api.academicbenchmarks.com/rest/v4.1'
 
-var gIncludePredicted = true; // flip this if you want just accepted
-var gTopicsConceptsLicensed = false; // assume topics aren't licensed initially
-var gArtifactsLicensed = false; // assume artifacts aren't licensed initially
-var gShowTopics = true; // make the display of topics configurable
+class AssetBrowser {
 
-jQuery.support.cors = true;
-// Microsoft Edge support - Polyfill the <details> tag
-$('details').details();
-//
-// updateDisplay - Something changed in the filter criteria - update all of the widgets and main list
-//
-function updateDisplay() {
-  loadAssets();
-  updateFacetCounts();
-}
-//
-// updateFacetCounts - update the facets and counts
-//
-function updateFacetCounts() {
-  //
-  // loop over the detail tags.  The parent div class is the name of the facet.  We do NOT use the facet itself as filter criteria when counting asset counts because we could run into mutually exclusive situations
-  // and we want different options to be selectable within a facet (like science and math).  Basically we are setting up an OR condition within the facet group
-  //
-  var facets = $('.side-panel details');
-  for (var i=0; i < facets.length; i++) {
-    var group = facets[i].parentNode.getAttribute('class');
-    switch (group) {
-      case 'standardsDoc':
-        // do nothing here - we don't display counts on the documents
-        break;
-      case 'topicsCloud':
-      case 'conceptsCloud':
-        if (gTopicsConceptsLicensed) updateCloudCounts(group);
-        break;
-	      case 'artifacts':
-	      case 'artifactsList':
-          updateArtifactFaceting(); // update the artifact fact counts if there is anything to update
-        break;
-      case 'standardsAligned':
-        updateStandardsAssetsCount(); // delegate the details to the align-widget module
-        break;
-      default: // normal faceted values
-        updateFacetWidgetCounts(group); // delegate the details to the facet-widget module
-        break;
-    }
-  }
-}
-//
-// loadAssets - pull the related assets.  Note that we skip this if there are no filter criteria to avoid overload
-//
-var gAssets = {}; // the cache of assets so we can populate the details
-var gVariableArguments = null;
-var gFacetFilter = null;
-function loadAssets() {
-  var facetFilter = buildFilter();
-  
-  if (gFacetFilter !== facetFilter ) gPaging.offset = 0; // if anything about the filtering has changed, reset the paging
-  gFacetFilter = facetFilter;
-  
-  var sVariableArguments = '?limit=' + gPaging.pageSize + '&offset=' + gPaging.offset + facetFilter;
-  
-  if (sVariableArguments === gVariableArguments) return; // nothing to update
-  
-  gVariableArguments = sVariableArguments;
-  disableLists();
-  //
-  // construct the URL to retreive the assets
-  //
-  var sourceUrl = ASSETS_URL + sVariableArguments + '&facet_summary=_none&fields[assets]=title,client_id,disciplines,education_levels,asset_type';
-  sourceUrl += Provider.getAssetFields();
+  config
+  authentication
+  authenticationCallback
 
-  sourceUrl += authenticationParameters(); // add the auth stuff
+  pictureCallback
+
+  pager
+  sdk
+
+  filters
+  extraFields
+
+  extraItemAttributes
+
+  current_list_style
+  current_page
+  page_size
+
+  // @params 
+  //  Authentication: A async callback that returns an object with the following
+  //    - partner_id
+  //    - auth_signature
+  //    - auth_expires
   //
-  // request the data
+  //  Config: An object with any of the following
+  //    - search: a boolean to enable text search
+  //    - alignments: a boolean to enable saerching by alignment
+  //    - topics: a boolean to enable searching by topic
+  //    - concepts: a boolean to enable searching by concepts
   //
-  $.ajax(
-    { 
-      url: sourceUrl,
-      crossDomain: true, 
-      dataType: 'json', 
-      tryCount: 0, 
-      retryLimit: RETRY_LIMIT,
-      success: function(data,status)
-        {
-        populateAssets(data);
-        },
-      error: function(xhr, status, error) 
-        { 
-        switch (xhr.status) {
-          case 503: // various resource issues
-          case 504: 
-          case 408: 
-          case 429: 
-            this.tryCount++; 
-            if (this.tryCount <= this.retryLimit) { //try again 
-              var ajaxContext = this; 
-              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
-            } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
-            } 
-            return; 
-          default: 
-            alert(`Error loading assets from AB Connect. ${xhr.responseText}`);
-        } 
-      } 
-    } 
-  ); 
-}
-//
-// populateAssets - load the assets list
-//    data - AJAX response
-//
-function populateAssets(data) {
-  hidePaging(); // prevent flashing of paging info
-  updatePaging(data); // update the counts
-  enableLists();
-  var list = $( "ul.my-border-list.mdc-list--two-line.mdc-list");
-  list.empty(); // clear the list
-  var expList = $( ".expandList");
-  expList.empty(); // clear the list
-  var gridList = $( ".gridList .mdc-grid-list ul.mdc-grid-list__tiles");
-  gridList.empty(); // clear the list
-  gAssets = {};
-  
-  if (data.data.length === 0) { // nothing to display
-    showPaging();
-    return;
-  }
+  //    - facets: An array of objects with all of the following
+  //      - api_facet_key:     The name of the facet (in meta.facets.facet)
+  //      - api_attribute_key: The name of the attribute (in data.attributes)
+  //      - api_descr:         The field in meta.facets.details.data to show to the user in the filter list
+  //      - api_code:          The code to use to search the API
+  //      - html_name:         The header to show the user in the filter pane
+  //      - html_class:        The class to use when creating the facet DOM node
+  //    
+  //    - extraFields: A comma-separated list of fields to include. Ensure you
+  //      inlucde ALL the fields you plan to use in the following 2 config opts
   //
-  // Loop over the assets, construct the label and add them to the supplied list
+  //    - extraItemAttributes: An array of objects with the following fields.
+  //      These will be shown when zooming into an asset. Useful for displaying
+  //      custom asset properties
+  //        - attribute_name: The name of the attribute
+  //        - attribute_key:  The field in the API to use to get the attribute
+  //          list. `data.attributes.` is implied at the beginning 
+  //        - attribute_inner_key: (optional) If present, use as a key on the
+  //          list from attribute_key (for when said list is a list of objects)
   //
-  for (var i=0; i < data.data.length; i++) {
-    var asset = data.data[i];
-    gAssets[asset.id] = asset; // cache this asset for later reference
-    //
-    // flesh out the item definition
-    //
-    asset.attributes.disciplines.subjects.sort(function (a, b) { // sort the subjects alphabetically
-      if (a.descr < b.descr) return -1;
-      else if (a.descr > b.descr) return 1;
-      else return 0;
-    });
-    var subjects = '';
-    for (j=0; j < asset.attributes.disciplines.subjects.length; j++) { // convert the list to CSV
-      subjects += asset.attributes.disciplines.subjects[j].descr + ', ';
+  //    - pictureCallback: A callback that recieves asset data (from the API)
+  //      and returns a URL to a picture. Defaults to the Certica Logo
+  constructor(authenticationCallback, config) {
+    this.config = config
+    this.authenticationCallback = authenticationCallback
+
+    // basic/expand/grid, set by the icons in the UI
+    this.current_list_style = 'grid'
+
+    // Default page size
+    this.page_size = 25
+
+    this.filters = []
+
+    this.extraFields = config.extraFields || ''
+    this.extraItemAttributes = config.extraItemAttributes || []
+
+    this.sdk = new ABAPI(
+      this.authenticationCallback
+    );
+
+    // Default pictureCallback is to return the Certica logo
+    this.pictureCallback = config.pictureCallback
+    if (!this.pictureCallback) {
+      this.pictureCallback = (asset) => {
+        return 'img/logo.png'
+      }
     }
-    if (subjects) {
-      subjects = subjects.substr(0,subjects.length - 2);
-    }
-    asset.attributes.education_levels.grades.sort(function (a, b) { // sort the grades by seq
-      if (a.seq < b.seq) return -1;
-      else if (a.seq > b.seq) return 1;
-      else return 0;
-    });
-    var grades = '';
-    for (j=0; j < asset.attributes.education_levels.grades.length; j++) { // convert the list to CSV
-      grades += asset.attributes.education_levels.grades[j].code + ',';
-    }
-    if (grades) {
-      grades = grades.substr(0,grades.length - 1);
-    }
-    var title = '&lt;no title&gt;';
-    if (asset.attributes.title) title = asset.attributes.title;
-    //
-    // create the basic list view element
-    //
-    var item = '';
-    item = Provider.getBasicItem(asset, title, subjects, grades);
-    list.append(item);
-    //
-    // create the expansion list view
-    //
-    item = Provider.getExpandItem(asset, title, subjects, grades);
-    expList.html(expList.html() + item);
-    //
-    // create the grid view
-    //
-    item = Provider.getTileItem(asset, title, subjects, grades, i);
-    gridList.html(gridList.html() + item);
+
+    this.initialize_filters()
+      .then(() => {
+        this.search()
+      })
+      .catch((error) => {
+        if (error.message == 401) {
+          alert("There was a problem with your authentication")
+        }
+        else {
+          console.log(error)
+          alert(error.message)
+        }
+      })
   }
 
-  showPaging();
-}
-//
-// buildFilter - build the facet filter string
-//  skip - a list of facets to NOT include in the filter string generation
-//
-//  returns: the facet filter string ready to be added to the end of the URL
-//
-function buildFilter(skip) {
-  //
-  // Build the filter statement, filtering on selected values if any.
-  // Start by recording the selected facet values
-  //
-  var filter = buildFacetFilter(skip);
-  //
-  // if there is anything in the search field, add it to the filter criteria
-  //
-  var search = $('.search');
-  if (search.val().length > 0) {
-    var text = search.val().replace(/[^a-zA-Z0-9]+/g, ' '); // prevent naughtiness - only allow alphanums
-    filter += `(query(title,'${text}') OR query('${text}')) AND `; // search on title specifically as well as full text to boost title searches
+  // Initialize the asset filters based on the user config
+  async initialize_filters() {
+    // First, we need to ensure we're authenticated
+    this.authentication = await this.authenticationCallback()
+
+    if (this.config.search) {
+      await this.initialize_search_filter()
+    }
+    if (this.config.alignments) {
+      await this.initialize_alignment_filter()
+    }
+    if (this.config.facets) {
+      await this.initialize_facet_filters()
+    }
+    if (this.config.artifacts) {
+      await this.initialize_artifact_filter()
+    }
+    if (this.config.topics) {
+      await this.initialize_topic_filter()
+    }
+    if (this.config.concepts) {
+      await this.initialize_concept_filter()
+    }
+
   }
-  //
-  // if standards are selected and we aren't skipping them for this filter:
-  //
-  var GUIDs = '';
-  if ($.inArray( 'standardsAligned', skip) === -1) {
-    //
-    // gather the list of selected standards
-    //
-    var chips = $('.standardsChips .mdl-chip__text');
-    GUIDs = '';
-    for (var i=0; i < chips.length; i++) {
-      GUIDs += "'" + chips[i].getAttribute('value') + "',"
-    }
-    if (GUIDs) {
-      //
-      // include the appropriate relationships in the search
-      //
-      var dispositionSearch = "standards.disposition in ('accepted', 'predicted')";
-      if (!gIncludePredicted) dispositionSearch = "standards.disposition EQ 'accepted'";
-      filter += "standards.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND " + dispositionSearch + " AND ";
-    }
+
+  async initialize_artifact_filter() {
+    // Initialize a cloud filter pointed at Concepts
+    // Same properties as the browser config's facet[] properties, plus api_context
+    let artifactFilter = new CloudFilter(this, {
+      html_class:        'artifactsCloud',
+      html_name:         'Artifacts',
+      api_facet_key:     'artifacts.artifact_type',
+      api_attribute_key: 'artifacts.artifact_type',
+      api_descr:         'descr',
+      api_code:          'guid',
+
+      // Controls hovertext
+      api_context:       'parent_descr' 
+    })
+
+    // Append the initial HTML for the filter
+    $('.filters').append(
+      await artifactFilter.initialize_filter()
+    )
+
+    artifactFilter.refresh_counts(this)
+
+    // Attach to the filters property so we know to refresh it
+    this.filters.push(artifactFilter)
   }
-  //
-  // if concepts are selected and we aren't skipping them for this filter:
-  //
-  if ($.inArray( 'conceptsCloud', skip) === -1) {
-    //
-    // now grab them from the tag cloud
-    //
-    chips = $('.conceptsCloud .chips .mdl-chip__text');
-    GUIDs = '';
-    for (var i=0; i < chips.length; i++) {
-      var guid = chips[i].getAttribute('value');
-      GUIDs += "'" + guid + "',"
-    }
-    if (GUIDs) {
-      filter += "concepts.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND ";
-    }
-  }
-  //
-  // if topics are selected and we aren't skipping them for this filter:
-  //
-  if ($.inArray( 'topicsCloud', skip) === -1) {
-    //
-    // now grab them from the tag cloud
-    //
-    chips = $('.topicsCloud .chips .mdl-chip__text');
-    GUIDs = '';
-    for (var i=0; i < chips.length; i++) {
-      var guid = chips[i].getAttribute('value');
-      GUIDs += "'" + guid + "',"
-    }
-    if (GUIDs) {
-      filter += "topics.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND ";
-    }
-  }
-  //
-  // if artifacts are selected and we aren't skipping them for this filter:
-  //
-  if ($.inArray( 'artifacts', skip) === -1) {
-    //
-    // now grab them from the tag cloud
-    //
-    chips = $('.artifacts .chips .mdl-chip__text');
-    GUIDs = '';
-    for (var i=0; i < chips.length; i++) {
-      var guid = chips[i].getAttribute('value');
-      GUIDs += "'" + guid + "',"
-    }
-    if (GUIDs) {
-      filter += "artifacts.artifact_type.id in (" + GUIDs.substr(0,GUIDs.length-1) + ") AND ";
-    }
-  }
-  //
-  // allow the provider to configure defaults if they'd like
-  //
-  filter += Provider.buildFilter();
-  //
-  // if there was any criteria, add the proper argument formatting
-  //
-  if (filter) {
-    filter = '&filter[assets]=(' + encodeURIComponent(filter.substr(0,filter.length-5)) + ')';
-  }
-  
-  return filter;
-}
-//
-// checkTopicsLicenseLevel - see if we can request concepts/topics
-//
-function checkTopicsLicenseLevel() {
-  //
-  // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
-  //
-  var topicURL = TOPICS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
-  //
-  // request the data
-  //
-  $.ajax(
-    { 
-      url: topicURL,
-      crossDomain: true, 
-      dataType: 'json', 
-      tryCount: 0, 
-      retryLimit: RETRY_LIMIT,
-      success: function(data,status)
-        {
-        gTopicsConceptsLicensed = true; // note we can use topics and relationships as topics is a higher license level than relationships
-        checkArtifactsLicenseLevel(); // check the artifact license now
-        },
-      error: function(xhr, status, error) 
-        { 
-        switch (xhr.status) {
-          case 401: // authorization error - let's figure out what kind
-            if (xhr.responseJSON.errors && 
-                xhr.responseJSON.errors[0].detail) {
-                  
-              if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
-                alert('Invalid partner ID or key.');
-              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') { // not going to do the Topic thing
-                checkArtifactsLicenseLevel(); // check the artifact license now
-              } else checkArtifactsLicenseLevel(); // swallow an unexpected error and check the artifact license now
-            } else checkArtifactsLicenseLevel(); // swallow an unexpected error and check the artifact license now
-            break;
-          case 503: // various resource issues
-          case 504: 
-          case 408: 
-          case 429: 
-            this.tryCount++; 
-            if (this.tryCount <= this.retryLimit) { //try again 
-              var ajaxContext = this; 
-              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
-            } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
-            } 
-            return; 
-          default: 
-            alert(`An error occured when attempting to check the Topics license. ${xhr.responseText}`);
-            checkArtifactsLicenseLevel();
-        } 
-      } 
-    } 
-  ); 
-}
-//
-// checkArtifactsLicenseLevel - see if we can request artifacts
-//
-function checkArtifactsLicenseLevel() {
-  //
-  // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
-  //
-  var artifactURL = ARTIFACTS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
-  //
-  // request the data
-  //
-  $.ajax(
-    { 
-      url: artifactURL,
-      crossDomain: true, 
-      dataType: 'json', 
-      tryCount: 0, 
-      retryLimit: RETRY_LIMIT,
-      success: function(data,status)
-        {
-        gArtifactsLicensed = true; // note we can use artifacts
-        init();
-        },
-      error: function(xhr, status, error) 
-        { 
-        switch (xhr.status) {
-          case 401: // authorization error - let's figure out what kind
-            if (xhr.responseJSON.errors && 
-                xhr.responseJSON.errors[0].detail) {
-                  
-              if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
-                alert('Invalid partner ID or key.');
-              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Artifacts') { // not going to do the artifact thing
-                init();
-              } else init(); // swallow an unexpected error and just init the app without artifacts
-            } else init();  // swallow an unexpected error and just init the app without artifacts
-            break;
-          case 503: // various resource issues
-          case 504: 
-          case 408: 
-          case 429: 
-            this.tryCount++; 
-            if (this.tryCount <= this.retryLimit) { //try again 
-              var ajaxContext = this; 
-              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
-            } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
-            } 
-            return; 
-          default: 
-            alert(`An error occured when attempting to check the Artifacts license. ${xhr.responseText}`);
-            init();
-        } 
-      } 
-    } 
-  ); 
-}
-//
-// init - if we are here, it is all good - get started 
-//
-function init() {
-  //
-  // show/hide the topics and concepts stuff based on licensing
-  //
-  if (gTopicsConceptsLicensed) {
+
+  async initialize_topic_filter() {
     
-    if (gShowTopics) $('.topicsCloud').show();
-    else $('.topicsCloud').hide();
+    // Initialize a cloud filter pointed at Concepts
+    // Same properties as the browser config's facet[] properties, plus api_context
+    let topicFilter = new CloudFilter(this, {
+      html_class:        'topicsCloud',
+      html_name:         'Topics',
+      api_facet_key:     'topics',
+      api_attribute_key: 'topics',
+      api_descr:         'descr',
+      api_code:          'guid',
+
+      // Controls hovertext
+      api_context:       'parent_descr' 
+    })
+
+    // Append the initial HTML for the filter
+    $('.filters').append(
+      await topicFilter.initialize_filter()
+    )
+
+    topicFilter.refresh_counts(this)
+
+    // Attach to the filters property so we know to refresh it
+    this.filters.push(topicFilter)
+  }
+
+  async initialize_concept_filter() {
     
-    $('.conceptsCloud').show();
-    initCloudCounts();
-  } else {
-    $('.topicsCloud').hide();
-    $('.conceptsCloud').hide();    
+    // Initialize a cloud filter pointed at Concepts
+    // Same properties as the browser config's facet[] properties, plus api_context
+    let conceptFilter = new CloudFilter(this, {
+      html_class:        'conceptsCloud',
+      html_name:         'Concepts',
+      api_facet_key:     'concepts',
+      api_attribute_key: 'concepts',
+      api_descr:         'descr',
+      api_code:          'guid',
+
+      // Controls hovertext
+      api_context:       'context' 
+    })
+
+    // Append the initial HTML for the filter
+    $('.filters').append(
+      await conceptFilter.initialize_filter()
+    )
+
+    conceptFilter.refresh_counts()
+
+    // Attach to the filters property so we know to refresh it
+    this.filters.push(conceptFilter)
   }
-  if (gArtifactsLicensed) {
-    $('.artifacts').show();
-    updateArtifactFaceting(); // gather the artifact facets
-  } else {
-    $('.artifacts').hide();
+
+  async initialize_alignment_filter() {
+    const alignment = new AlignFilter(this, {
+      predicted: true
+    });
+    $('.filters').append(await alignment.initialize_filter())
+
+    this.filters.push(alignment)
   }
-  identifyFacets();
-  loadAssets();
-}
-//
-// authenticationParameters - retrieve the auth URL parameters
-//
-function authenticationParameters() {
-  var authDetails = '&partner.id=' + encodeURIComponent(Provider.ID);
-  if (Provider.signature) {
-    authDetails += '&auth.signature=' + encodeURIComponent(Provider.signature) + '&auth.expires=' + encodeURIComponent(Provider.expires);
+
+  async initialize_facet_filters() {
+    let requested_facet_list = this.config.facets.map(facet => facet.api_facet_key).join(',')
+
+    // Use the API to determine valid values/counts for each facet (filter option)
+    let facets = (await this.sdk.get(`${BASE_URL}/assets?limit=0&facet=${requested_facet_list}`)).meta.facets
+
+    // Create a DOM element to put the filters
+    let $facet_area_html = $(`<div class='facet_area'></div>`)
+
+    // Iterate over the facets from the config and create their HTML
+    await facets.forEach(async facet => {
+
+      // Create a new facet filter based on its config
+      const facet_filter = new FacetFilter(
+        this,
+
+        // Current facet config
+        this.config.facets
+          .filter((facet_config) => facet_config.api_facet_key == facet.facet)
+          [0]
+      )
+      this.filters.push(facet_filter)
+
+      let $facet_filter_html = await facet_filter.initialize_filter(facet)
+
+      // Attach our now-compete facet filter node the facet list
+      $facet_area_html.append($facet_filter_html)
+    })
+
+    // When a filter criteria is changed, update the asset search & counts accordingly
+    $facet_area_html.find('input[type=checkbox]').click(
+      () => { this.search() }
+    )
+
+    // Attach our now-complete filter to the DOM.
+    $('.filters').append($facet_area_html)
   }
-  return authDetails;
-}
-//
-// authenticate - retrieve the required credentials and load the page
-//
-function authenticate() {
-  //
-  // call the provider specific method for loading the credentials
-  //
-  Provider.authenticate();
-  //
-  // reset the license levels - we do this here so we pickup the proper settings when someone changes the user account
-  //
-  gTopicsConceptsLicensed = false;
-  checkTopicsLicenseLevel();
-}
-//
-// viewExp - show the expansion list
-//
-function viewExp() {
-  $('.basicList').hide();
-  $('.viewList').css('color', '#000');
-  $('.viewList').css('cursor', 'pointer');
-  $('.gridList').hide();
-  $('.viewGrid').css('color', '#000');
-  $('.viewGrid').css('cursor', 'pointer');
-  $('.expandList').show();
-  $('.viewExp').css('color', '#bdbdbd');
-  $('.viewExp').css('cursor', 'default');
-}
-//
-// viewList - show the basic list view
-//
-function viewList() {
-  $('.basicList').show();
-  $('.viewList').css('color', '#bdbdbd');
-  $('.viewList').css('cursor', 'default');
-  $('.gridList').hide();
-  $('.viewGrid').css('color', '#000');
-  $('.viewGrid').css('cursor', 'pointer');
-  $('.expandList').hide();
-  $('.viewExp').css('color', '#000');
-  $('.viewExp').css('cursor', 'pointer');
-}
-//
-// viewGrid - show the grid view
-//
-function viewGrid() {
-  $('.basicList').hide();
-  $('.viewList').css('color', '#000');
-  $('.viewList').css('cursor', 'pointer');
-  $('.gridList').show();
-  $('.viewGrid').css('color', '#bdbdbd');
-  $('.viewGrid').css('cursor', 'default');
-  $('.expandList').hide();
-  $('.viewExp').css('color', '#000');
-  $('.viewExp').css('cursor', 'pointer');
-}
-//
-// disableLists - disable the list region
-//
-function disableLists() {
-  $('.assetList').addClass('disabledDiv');
-}
-//
-// enableLists - enable the list region
-//
-function enableLists() {
-  $('.assetList').removeClass('disabledDiv');
+
+  // Attach the search box to the filter pane
+  async initialize_search_filter() {
+    const search = new SearchFilter(this, {})
+    $('.filters').append(await search.initialize_filter())
+
+    // Save for later
+    this.filters.push(search)
+  }
+
+  async refresh_filter_counts() {
+    // Iterate over our list of configured facet filters
+    this.filters.forEach(async (filter) => {
+      filter.refresh_counts(this)
+    })
+
+  }
+
+  // Return a string in the form of (filter[assets]=...) based on the
+  // filters you selected on the left
+  async get_filters(skip_facet_key) {
+    const filters = this.filters
+      // If the consumer asked us to skip a facet, do so
+      .filter(filter => filter.config.api_attribute_key != skip_facet_key)
+      // Turn the filter object into an api-compatible filter string
+      .map(filter => filter.build_filter())
+      // Remove empty string
+      .filter(filter => filter !== '')
+      // Join together using AND's
+      .join(' and ')
+
+    // If there are filters to return, do so
+    if (filters.length) {
+      return `filter[assets]=(${filters})`
+    }
+
+    return ''
+  }
+
+  async get_fields(){
+    let fields = 'title,disciplines.subjects,education_levels.grades,client_id'
+
+    if(this.extraFields){
+      fields = fields + ',' + this.extraFields
+    }
+
+    return `fields[assets]=${fields}`
+  }
+
+  // This is ran every time you need a NEW pager (ie, you change the filters)
+  async search() {
+    let filters = await this.get_filters()
+
+    // TODO: set fields to only needed
+    const pager = this.sdk.pager(`${BASE_URL}/assets?${filters}&${await this.get_fields()}&limit=${this.page_size}`)
+
+    // Refresh our filter counts with our new query
+    this.refresh_filter_counts()
+
+    // rebind the click handlers to call the new pager variable
+    $('.nextPage')
+      .off('click')
+      .click(() => {
+        this.render_results(pager.next('next'))
+      })
+
+    $('.prevPage')
+      .off('click')
+      .click(() => {
+        this.render_results(pager.next('prev'))
+      })
+
+    $('.firstPage')
+      .off('click')
+      .click(() => {
+        this.render_results(pager.next('first'))
+      })
+
+    $('.lastPage')
+      .off('click')
+      .click(() => {
+        this.render_results(pager.next('last'))
+      })
+
+    // Rebind the 'list style' and 'page size' UI switches to the appropriate action and show
+    $('.page25').off('click').click(async () => {
+        await this.set_page_size(25)
+        this.search()
+      })
+      .css('visibility', 'visible')
+
+    $('.page50').off('click').click(async () => {
+        await this.set_page_size(50)
+        this.search()
+      })
+      .css('visibility', 'visible')
+
+    $('.page100').off('click').click(async () => {
+        await this.set_page_size(100)
+        this.search()
+      })
+      .css('visibility', 'visible')
+
+    $('.view_basic').off('click').click(async () => {
+      this.set_list_style('basic')
+      this.render_results()
+    })
+    $('.view_expand').off('click').click(async () => {
+      this.set_list_style('expand')
+      this.render_results()
+    })
+    $('.view_grid').off('click').click(async () => {
+      this.set_list_style('grid')
+      this.render_results()
+    })
+
+    // Get the first page
+    this.render_results(pager.next())
+  }
+
+
+  // UI Controls for how we display the resulting assets
+  async set_page_size(size) {
+    this.page_size = size
+    $(`.pageSize`).children().removeClass('active')
+    $(`.page${size}`).addClass('active')
+  }
+
+  async set_list_style(style){
+    this.current_list_style = style
+    $('.viewLayout').children().removeClass('active')
+    $(`.viewLayout .view_${style}`).addClass('active')
+  }
+
+  /* Render Methods */
+  async render_results(result_promise) {
+    // First, we grey out the asset list to show the user something is happening
+    $('.assetList').addClass('disabledDiv')
+
+    // If we are rendering a new result (we have a promise), await the API call
+    if (result_promise) {
+      this.current_page = (await result_promise).value
+    }
+
+    // Render the current page
+    let results = this.current_page
+
+    // Render the correct list based on the current choice
+    if (this.current_list_style == 'basic') {
+      await this.render_basic_list(results.data)
+    }
+    else if (this.current_list_style == 'expand') {
+      await this.render_expand_list(results.data)
+    }
+    else if (this.current_list_style == 'grid') {
+      await this.render_tile_list(results.data)
+    }
+    else {
+      alert('Invalid list style!')
+    }
+
+    // Show/Hide the paging buttons based on what is available
+    $('.nextPage').css('visibility', results.links.next ? 'visible' : 'hidden')
+    $('.prevPage').css('visibility', results.links.prev ? 'visible' : 'hidden')
+    $('.firstPage').css('visibility', results.links.first ? 'visible' : 'hidden')
+    $('.lastPage').css('visibility', results.links.last ? 'visible' : 'hidden')
+
+    // Update the page counter
+    $('.position').text(`Page ${1 + (results.meta.offset / results.meta.limit)} of ${Math.ceil(results.meta.count / results.meta.limit)}`)
+
+    // Re-enable (un-grey) the asset list
+    $('.assetList').removeClass('disabledDiv')
+  }
+
+  async render_basic_list(data) {
+    let $asset_list = $('.assetList')
+
+    $asset_list.empty()
+
+    // Set the appropriate classes for basic list
+    $asset_list.attr('class', 'assetList mdc-list mdc-list--two-line my-border-list')
+
+    data.forEach(asset => {
+      const subjects = asset.attributes.disciplines.subjects.map(subject => subject.descr).join(', ')
+      const grades = asset.attributes.education_levels.grades.map(grade => grade.descr).join(', ')
+      
+      const item = $(`
+        <li class="mdc-list-item">
+          <span class="mdc-list-item__text">
+            <div class="titleRow">
+              <div class="clientID">${asset.attributes.client_id}</div>
+              <div class="ABTitle" value="${asset.id}" title="${asset.attributes.title}">${asset.attributes.title}</div>
+            </div>
+            <span class="mdc-list-item__text__secondary" title="${subjects} ${grades}">
+              <div class="ABSubject">${subjects}</div>
+              <div class="ABGrade">${grades}</div>
+            </span>
+          </span>
+          <a 
+            href="#"
+            class="mdc-list-item__end-detail material-icons"
+            aria-label="More Information"
+            title="More Information"
+            value="${asset.id}"
+          > info </a>
+        </li>
+      `)
+      $asset_list.append(item)
+
+      // Set up the click handler for activating the modal
+      const modal_title = asset.attributes.title + ` (${asset.attributes.client_id})` 
+      item.find('a[aria-label="More Information"]').click(event => {
+        const guid = $(event.target).attr('value')
+        this.render_item_modal(guid, modal_title)
+      })
+    })
+  }
+
+  async render_expand_list(data) {
+    let $asset_list = $('.assetList')
+
+    $asset_list.empty()
+
+    // Set the appropriate classes for basic list
+    $asset_list.attr('class', 'assetList mdc-list mdc-list--two-line my-border-list')
+
+    data.forEach(asset => {
+      $asset_list.append(`
+        <details data-id='${asset.id}'>
+          <summary>
+             <ul>
+               <li class="titleName">
+                 <div
+                   class="ABTitle"
+                   value="${asset.id}"
+                   title="${asset.attributes.title}"
+                 >
+                   ${asset.attributes.title}
+                 </div>
+               </li>
+             </ul>
+          </summary>
+          <div class="content">
+          </div>
+        </details>`
+      )
+    })
+
+    // Attach a click handler to expand asset detail data
+    $asset_list.find('details').click(async (event) => {
+      let $expand_list = $(event.target).closest('details')
+
+      if($expand_list.find('div.content section').length == 0){
+        const guid = $expand_list.data('id')
+        $expand_list.find('div.content').append(
+          await (this.render_item(guid))
+        )
+
+      }
+    })
+  }
+
+  async render_tile_list(data) {
+    const $assets = $('.assetList')
+    $assets.empty()
+
+    // Set the appropriate classes for basic list
+    $assets.attr('class', 'assetList gridList mdc-grid-list mdc-grid-list--with-icon-align-end')
+
+    const $asset_list = $(`
+     <ul class="mdc-grid-list__tiles" />
+    `)
+
+    data.forEach(asset => {
+      const subjects = asset.attributes.disciplines.subjects.map(subject => subject.descr).join(', ')
+      const grades = asset.attributes.education_levels.grades.map(grade => grade.descr).join(', ')
+
+      const item = $(`
+        <li class="mdc-grid-tile">
+          <div class="mdc-grid-tile__primary">
+            <div class="mdc-grid-tile__primary-content" style="background-image: url(${this.pictureCallback(asset)});/"></div>
+          </div>
+          <span class="mdc-grid-tile__secondary">
+            <i class="mdc-grid-tile__icon material-icons" aria-label="More Information" title="More Information" value="${asset.id}">info</i>
+            <span class="mdc-grid-tile__title">
+              <div
+                class="ABTitle"
+                value="${asset.id}"
+                title="${asset.attributes.title}"
+              >
+                ${asset.attributes.title}
+              </div>
+            </span>
+            <span
+              class="mdc-grid-tile__support-text"
+              title="${subjects} ${grades}"
+            >
+              <div class="ABSubject">${subjects}</div>
+              <div class="ABGrade">${grades}</div>
+            </span>
+          </span>
+        </li>
+      `)
+      $asset_list.append(item)
+  
+      const modal_title = asset.attributes.title + ` (${asset.attributes.client_id})`
+      item.find('i[aria-label="More Information"]').click(event => {
+        const guid = $(event.target).attr('value')
+        this.render_item_modal(guid, modal_title)
+      })
+    })
+
+    $assets.append($asset_list)
+  }
+
+  async render_item(guid) {
+    let $return_html = $(`<section/>`)
+
+    const asset_data = await this.sdk.get(`${BASE_URL}/assets/${guid}?${await this.get_fields()}`)
+
+    // Append Subject info to the return
+    $return_html.append(
+      this.render_item_property(
+        'Subjects',
+        asset_data.data.attributes.disciplines.subjects
+          .map(subject => subject.descr)
+      )
+    )
+
+    // Append Grade info to the return
+    if(asset_data.data.attributes.education_levels.grades.length){
+      $return_html.append(
+        this.render_item_property(
+          'Grades',
+          asset_data.data.attributes.education_levels.grades
+            .map(grade => grade.descr)
+        )
+      )
+    }
+
+    // Same thing as the 2 above but for user-supplied attributes
+    for(const extraItemAttribute of this.extraItemAttributes){
+      $return_html.append(
+        this.render_item_property(
+          extraItemAttribute.attribute_name,
+          jsonpath.query(
+            asset_data,
+            `$.data.attributes.${extraItemAttribute.attribute_key}`
+          )
+            // If they provided an inner key, use it
+            .map(attribute => 
+              extraItemAttribute.attribute_inner_key 
+                ? attribute[extraItemAttribute.attribute_inner_key]
+                : attribute
+            )
+        )
+      )
+    }
+
+    // Set up loading screens for topics, concepts, and alignments
+    let $topics_node = this.render_item_property('Topics', ['Loading...'])
+    $return_html.append($topics_node)
+
+    let $concepts_node = this.render_item_property('Concepts', ['Loading...'])
+    $return_html.append($concepts_node)
+
+    let $alignments_node = this.render_item_property('Alignments', ['Loading...'])
+    $return_html.append($alignments_node);
+
+    // Run the rest of the code aynchronously so that the user gets the data
+    // we have as soon as we have it
+    (async () => {
+  
+
+      // Page through all of the topics on the asset
+      let topics = []
+      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/topics?fields[topics]=section.descr,descr&limit=100`)) {
+        topics.push(...(response.data))
+      }
+      if(topics.length){
+        $topics_node.replaceWith(
+          this.render_item_property(
+            'Topics',
+            topics.map(topic => topic.attributes.section.descr + " > " + topic.attributes.descr)
+          )
+        )
+      }
+      else {
+        $topics_node.remove()
+      }
+
+      // Page through all of the concepts on the asset
+      let concepts = []
+      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/concepts?fields[concepts]=context,descr&limit=100`)) {
+        concepts.push(...(response.data))
+      }
+      if(concepts.length){
+        $concepts_node.replaceWith(
+          this.render_item_property(
+            'Concepts',
+            concepts.map(concept => concept.attributes.context + " > " + concept.attributes.descr)
+          )
+        )
+      }
+      else {
+        $concepts_node.remove()
+      }
+
+      // Page through all of the alignments on the asset. Unlike the other
+      // relationships, we render immediately after getting each API page.
+      // This is done by filling our map object and completely reflowing.
+      let alignments_by_authority = new Map()
+      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/alignments&fields[standards]=document.publication.authorities,statement,number&limit=100`)) {
+        // Just a simple partitioning algorithm on authority descr
+        for (const alignment of response.data) {
+          // An alignment can technically have multiple authorities, albiet rarely
+          for (const authority of alignment.attributes.document.publication.authorities) {
+            // Either create or append to the array corresponding to our auth
+            if(!alignments_by_authority.has(authority.descr)){
+              alignments_by_authority.set(authority.descr, [])
+            }
+            alignments_by_authority.get(authority.descr).push(alignment)
+          }
+        }
+        if(response.data.length){
+          const $alignments = $(`<div/>`)
+          $alignments.append(`
+            <div class='asset-attribute-title'>Alignments</div>
+          `)
+
+          // Append the alignments, grouped by authority, to our HTML node
+          const $authority_list = $(`<div class='asset-attribute-value'>`)
+          for (const authority_alignments of alignments_by_authority.entries()){
+            // Decompose the result of the entries() iterator
+            const authority_descr = authority_alignments[0]
+            const alignments = authority_alignments[1]
+ 
+            // Title
+            $authority_list.append(`<div class="authority">${authority_descr}</div>`)
+
+            // Alignments
+            $authority_list.append(`
+              <div class="standardList">${
+                alignments.map(alignment => `
+                  <div
+                    class='standard'
+                    title='${alignment.attributes.statement.descr}'
+                  >${alignment.attributes.number.enhanced}</div>
+                `).join('')
+              }</div>
+            `)
+          }
+
+          // Add our alignment list to our full node
+          $alignments.append($authority_list)
+
+          // Append the full alignment node the the HTML
+          $alignments_node.replaceWith($alignments)
+
+          // Replace our $alignments_node reference with the new DOM element
+          // so that in the next iteration, we replace the new node.
+          $alignments_node = $alignments
+        }
+        else {
+          // This will only happen if we got 0 in our _first_ call, since
+          // we wouldn't be paging otherwise
+          $alignments_node.remove()
+        }
+      }
+
+
+    })()
+
+    return $return_html
+    
+  }
+
+  async render_item_modal(guid, title){
+    const $modal = $('.ab-details-dialog')
+
+    // Set the title
+    $modal.find('.mdc-dialog__header__title').text(title)
+
+    // Set the content
+    $modal.find('.mdc-dialog__body')
+      .replaceWith(
+        (await (this.render_item(guid)))
+          // And set a few properties for the framework to pretty it up for us
+          .attr('class', 'mdc-dialog__body mdc-dialog__body--scrollable')
+          .attr('id', 'mdc-dialog-with-list-description')
+      )
+
+    // Show the modal
+    const dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('.ab-details-dialog'));
+    dialog.show()
+  }
+
+  render_item_property(property_name, property_list) {
+    return $(`
+    <div>
+      <div class='asset-attribute-title'>
+        ${property_name}
+      </div>
+      <div class='asset-attribute-value-list'>
+        ${property_list
+          .map( property => `
+            <div class='asset-attribute-value'>
+              ${property}
+            </div>  
+          `)
+          .join("\n")
+        }
+      </div>
+    </div>
+    `)
+
+
+  }
+
 }
 
-function htmlEncode(value){
-  //create a in-memory div, set it's inner text(which jQuery automatically encodes)
-  //then grab the encoded contents back out.  The div never exists on the page.
-  return $('<div/>').text(value).html();
+class SearchFilter {
+  config
+  browser
+  
+  constructor(browser, config){
+    this.config = config
+    this.browser = browser
+
+    // This is required to be exactly this for filtering to work
+    this.config.api_attribute_key = 'Search'
+  }
+
+  async initialize_filter(browser){
+    const $return_html = $(`
+      <div class="textSearch">
+        <input type="search" class="search" placeholder="Full text search..." />
+      </div>
+    `)
+
+    // Attach a DOM handler to update asset query when the user searches
+    $return_html.find('input.search').on('blur', () => { this.browser.search() })
+    $return_html.find('input.search').on('search', () => { this.browser.search() })
+
+    return $return_html
+  }
+
+  // The search filter has no counts to refresh
+  async refresh_counts(){
+
+  }
+
+build_filter(){
+    // Text Search (alpha-numeric only to prevent injection)
+    let search = $('.textSearch input').val().replace(/[^a-zA-Z0-9]+/g, '')
+    if(search){
+      // We search on both title and 'all' to boost the score of title-text matches
+      return `(query(title,'${search}') OR query('${search}'))`
+    }
+    return ''
+  }
+}
+
+// Word clouds. Set to a hardcoded limit of 20 currently.
+class CloudFilter {
+  config
+  browser
+
+  top_limit = 20
+
+  constructor(browser, config){
+    this.browser = browser
+    this.config = config
+  }
+
+  // @param: response.meta.facets[api_facet_key]
+  async initialize_filter(facet){
+    const $return_html = $(`
+      <div class="${this.config.html_class}">
+        <details>
+            <summary>
+              ${this.config.html_name}
+            </summary>
+            <div class="content more">
+              <div class="chips"> </div>
+              <div class="tags common">
+                <ul> </ul>
+              </div>
+              <a href='#' class='morelink'>More...</a>
+            </div>
+        </details>
+      </div>
+    `)
+
+    $return_html.find('.morelink').click(() => {
+      if(this.top_limit == 0) {
+        this.top_limit = 20 // hardcoded atm
+        $return_html.find('.morelink').text('More...')
+      }
+      else {
+        this.top_limit = 0
+        $return_html.find('.morelink').text('Less...')
+      }
+
+      this.refresh_counts()
+    })
+
+    return $return_html
+  }
+
+  async refresh_counts(){
+    const filters = await this.browser.get_filters(this.config.api_attribute_key)
+    const response = await this.browser.sdk.get(`${BASE_URL}/assets?${filters}&facet=${this.config.api_facet_key}&limit=0`)
+
+    let new_facets = response.meta.facets.filter((facet) => facet.facet == this.config.api_facet_key)[0].details
+
+    // Limit to the top X (0 for all)
+    if(this.top_limit){
+      new_facets = new_facets.sort((a, b) => b.count - a.count).slice(0,this.top_limit)
+    }
+
+    // In order to scale, we need to know the smallest & largest counts.
+    // Ignore 0's
+    let all_nonzero_counts = new_facets
+      .map(facet => facet.count)
+      .filter(count => count != 0)
+
+    const lowest_count   = Math.min(...all_nonzero_counts)
+    const highest_count  = Math.max(...all_nonzero_counts)
+
+    // Insert the new tags in the HTML
+    const $tag_list = $(`.${this.config.html_class} .tags ul`)
+    $tag_list.empty()
+
+    // Sort the facets alphabetically
+    new_facets.sort((a, b) => a.data[this.config.api_descr].localeCompare(b.data[this.config.api_descr]))
+
+    // Attach to DOM
+    new_facets.forEach((facet) => {
+      $tag_list.append($(`
+        <li
+          style="font-size: ${
+            facet.count == 0 || lowest_count == highest_count 
+              ? 100
+              : Math.floor(
+                (facet.count - lowest_count) / 
+                (highest_count - lowest_count) * 75
+              ) + 125
+          }%;"
+          
+          title="${facet.data[this.config.api_context]}"
+          value="${facet.data[this.config.api_code]}"
+        >
+          ${facet.data[this.config.api_descr]} (${facet.count})</li>
+      `))
+    })
+
+    // Attach click handlers to add/remove chips
+    $tag_list.children().click(event => {
+      let $node = $(event.target)
+      let $chip_list = $(`.${this.config.html_class} .chips`)
+
+      $chip_list.append(`
+        <span class="mdl-chip mdl-chip--deletable">
+          <span
+             class="mdl-chip__text"
+             title="${$node.attr('title')}"
+             value="${$node.attr('value')}"
+          >${$node.text()}</span>
+          <button
+            type="button"
+            class="mdl-chip__action"
+            value="${$node.attr('value')}"
+          >
+            <i class="material-icons">cancel</i>
+          </button>
+        </span>
+      `)
+
+      // Chip remover handler
+      $chip_list.find('.mdl-chip button').click(event => {
+        let $chip = $(event.target).closest('.mdl-chip')
+        $chip.remove()
+
+        // Refresh search to exclude deleted filter
+        this.browser.search()
+      })
+
+      // Refresh search to include new filter
+      this.browser.search()
+    })
+  }
+
+  build_filter(){
+    let facets = [];
+    $(`.${this.config.html_class} .chips`).find('.mdl-chip__text').get().forEach(chip => {
+      facets.push($(chip).attr('value'))
+    })
+    
+    if(facets.length) {
+      return `(${this.config.api_attribute_key}.guid IN (${facets.map(facet => '\'' + facet + '\'').join(',')}))`
+    }
+    return ''
+  }
+}
+
+class FacetFilter {
+  config
+  browser
+  
+  constructor(browser, config){
+    this.browser = browser
+    this.config = config
+  }
+
+  // @param: response.meta.facets[api_facet_key]
+  async initialize_filter(facet){
+    let facet_config = this.config
+
+    // Create a (detached) DOM node representing the facet
+    let facet_node = $(`
+      <div class='${facet_config.html_class}'>
+        <details>
+          <summary>${facet_config.html_name}</summary>
+          <div class='content more' />
+        </details>
+      </div>
+    `)
+
+    // Grab the 'content' div of the DOM node we just created and append our
+    // all the valid values for our facet and their count.
+    const facet_list_node = facet_node.find('.content')
+    facet.details.forEach(detail => {
+      facet_list_node.append(`
+        <div 
+          class='mdc-form-field'
+          data-id="${detail.data[facet_config.api_code]}"
+        >
+          <div class='mdc-checkbox'>
+            <input type="checkbox"
+              id="${detail.data[facet_config.api_code]}"
+              value="${detail.data[facet_config.api_code]}"
+              class="mdc-checkbox__native-control"
+             />
+
+            <div class="mdc-checkbox__background">
+              <svg class="mdc-checkbox__checkmark"
+                   viewBox="0 0 24 24">
+                <path class="mdc-checkbox__checkmark__path"
+                      fill="none"
+                      stroke="white"
+                      d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+              </svg>
+              <div class="mdc-checkbox__mixedmark"></div>
+            </div>
+          </div>
+
+          <label
+            for="${detail.data[facet_config.api_code]}"
+          > ${detail.data[facet_config.api_descr]} (<span class='facet-api-count'>${detail.count}</span>) </label>
+        </div>
+      `)
+    })
+
+    return facet_node
+  }
+
+  async refresh_counts() {
+    const facet_config = this.config
+    const requested_facet_list = this.browser.config.facets.map(facet => facet.api_facet_key).join(',')
+
+    // fetch the updated facet information for the new query. We EXCLUDE the
+    // facet we're iterating over so that having selected a value for this
+    // facet doesn't exclude all the others (i.e., selecting MATH would
+    // otherwise give SCI a count of zero since they are exclusive)
+    const filters = await this.browser.get_filters(facet_config.api_attribute_key)
+    const response = await this.browser.sdk.get(`${BASE_URL}/assets?${filters}&facet=${requested_facet_list}&limit=0`)
+
+    const new_facets = response.meta.facets.filter((facet) => facet.facet == facet_config.api_facet_key)[0].details
+
+    // For each facet on the screen...
+    $(`.facet_area .${facet_config.html_class}`).find('.mdc-form-field').get().forEach(elem => {
+      // Find the corresponding facet from the API call
+      const new_facet = new_facets.filter(facet => facet['data'][facet_config.api_code] == $(elem).data('id'))[0]
+      const new_count = new_facet ? new_facet.count : 0
+
+      // Set the count in then display
+      $(elem).find('label .facet-api-count').text(new_count)
+
+      // If the count is 0, disable selecting the facet detail
+      $(elem).toggleClass('disabledDiv', new_count == 0)
+    })
+    new_facets.forEach(facet => {
+      $(`.facet_area .${facet_config.html_name} label[for=${facet[facet_config.api_descr]}]`)
+    })
+  }
+
+  build_filter(){
+    // We OR together facets of the same kind
+    let facet_choices = []
+
+    // Get the currently checked options (checkboxes) from the UI
+    $(`.${this.config.html_class} .content input:checked`)
+      .map((_, node) => $(node).val())
+      .get()
+      .forEach(code => {
+        facet_choices.push(`(${this.config.api_attribute_key} eq '${code}')`)
+      })
+
+    // If there were selected facet_choices, return them
+    if (facet_choices.length) {
+      return `(${facet_choices.join(' or ')})`
+    }
+
+    return ''
+  }
 }
