@@ -30,7 +30,8 @@ class ABAPI {
     // Run until we consume the generator (usually next()'ing past the end)
     while(url){
 
-      // Attempt the AJAX request. Get the response
+      // Get the next (or prev, self, last, etc.) page of data requested
+      // by the consumer
       try{
         var body = await this.get(url, config)
       }
@@ -39,6 +40,12 @@ class ABAPI {
       }
 
       // Return the response. Ask where to page next.
+      // There's a lot here. Basically,
+      //   return body to the consumer who called next()
+      //   user does whatever it is that users do
+      //   user calls next('some_string')
+      //     ('some_string' is stored in the const next)
+      //   program resumes execution on this line
       const next = yield body
 
       // Set the URL based on where we want to page to. Default is forward.
