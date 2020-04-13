@@ -214,7 +214,7 @@ async function processFile() {
     }
     else {
       // Calculate the filter
-      let filter = `(document.publication.authorities.guid eq ${tools.arguments().authority} and ${tools.arguments().type}.id eq '${guid}')`;
+      let filter = `(document.guid eq ${tools.arguments().document} and ${tools.arguments().type}.id eq '${guid}')`;
 
       // Collect the siblings of our original standard
       for await (const response of api.pager(
