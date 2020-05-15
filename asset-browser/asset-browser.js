@@ -11,7 +11,10 @@ class AssetBrowser {
   pager
   sdk
 
+  include_predicted_alignments
+
   filters
+  extraFilters
   extraFields
 
   extraItemAttributes
@@ -31,6 +34,9 @@ class AssetBrowser {
   //    - alignments: a boolean to enable saerching by alignment
   //    - topics: a boolean to enable searching by topic
   //    - concepts: a boolean to enable searching by concepts
+  //    
+  //    - include_predicted_alignments: Include alignments with a disposition
+  //      of predicted in the alignment widget and when zooming into an asset
   //
   //    - facets: An array of objects with all of the following
   //      - api_facet_key:     The name of the facet (in meta.facets.facet)
@@ -43,14 +49,24 @@ class AssetBrowser {
   //    - extraFields: A comma-separated list of fields to include. Ensure you
   //      inlucde ALL the fields you plan to use in the following 2 config opts
   //
+  //    - extraFilters: A comma-separated list of filters to ALWAYS include
+  //
   //    - extraItemAttributes: An array of objects with the following fields.
   //      These will be shown when zooming into an asset. Useful for displaying
   //      custom asset properties
-  //        - attribute_name: The name of the attribute
+  //        - attribute_name: The name of the attribute (for the UI)
   //        - attribute_key:  The field in the API to use to get the attribute
   //          list. `data.attributes.` is implied at the beginning 
   //        - attribute_inner_key: (optional) If present, use as a key on the
   //          list from attribute_key (for when said list is a list of objects)
+  //
+  //    - extraItemRelationships: An array of objects with the following fields.
+  //      These will be shown when zooming into an asset. Used for displaying
+  //      relationships to your asset (like alignment donors)
+  //        - relationship_name: The name of the relationship (for the UI)
+  //        - relationship_type: The relationship target type suitable for
+  //          fields[{--HERE--}]. For example, alignment_donors -> asset
+  //        - relationship_key:  The field in the API you're interested in
   //
   //    - pictureCallback: A callback that recieves asset data (from the API)
   //      and returns a URL to a picture. Defaults to the Certica Logo
@@ -65,16 +81,20 @@ class AssetBrowser {
     this.page_size = 25
 
     this.filters = []
+    this.extraFilters = config.extraFilters
+
+    this.include_predicted_alignments = !!config.include_predicted_alignments
 
     this.extraFields = config.extraFields || ''
     this.extraItemAttributes = config.extraItemAttributes || []
+    this.extraItemRelationships = config.extraItemRelationships || []
 
     this.sdk = new ABAPI(
       this.authenticationCallback
     );
 
     // Default pictureCallback is to return the Certica logo
-    this.pictureCallback = config.pictureCallback
+    this.pictureCallback = config.pictureCallback.bind(this)
     if (!this.pictureCallback) {
       this.pictureCallback = (asset) => {
         return 'img/logo.png'
@@ -98,8 +118,8 @@ class AssetBrowser {
 
   // Initialize the asset filters based on the user config
   async initialize_filters() {
-    // First, we need to ensure we're authenticated
-    this.authentication = await this.authenticationCallback()
+    // Ensure we are authenticated
+    this.authentication = await this.authenticationCallback();
 
     if (this.config.search) {
       await this.initialize_search_filter()
@@ -204,7 +224,7 @@ class AssetBrowser {
 
   async initialize_alignment_filter() {
     const alignment = new AlignFilter(this, {
-      predicted: true
+      predicted: this.include_predicted_alignments
     });
     $('.filters').append(await alignment.initialize_filter())
 
@@ -214,15 +234,15 @@ class AssetBrowser {
   async initialize_facet_filters() {
     let requested_facet_list = this.config.facets.map(facet => facet.api_facet_key).join(',')
 
+    const enforced_fitler = this.extraFilters ? `&filter[assets]=(${this.extraFilters})` : ''
     // Use the API to determine valid values/counts for each facet (filter option)
-    let facets = (await this.sdk.get(`${BASE_URL}/assets?limit=0&facet=${requested_facet_list}`)).meta.facets
+    let facets = (await this.sdk.get(`${BASE_URL}/assets?limit=0&facet=${requested_facet_list}${enforced_fitler}`)).meta.facets
 
     // Create a DOM element to put the filters
     let $facet_area_html = $(`<div class='facet_area'></div>`)
 
     // Iterate over the facets from the config and create their HTML
-    await facets.forEach(async facet => {
-
+    for await (const facet of facets){
       // Create a new facet filter based on its config
       const facet_filter = new FacetFilter(
         this,
@@ -238,7 +258,7 @@ class AssetBrowser {
 
       // Attach our now-compete facet filter node the facet list
       $facet_area_html.append($facet_filter_html)
-    })
+    }
 
     // When a filter criteria is changed, update the asset search & counts accordingly
     $facet_area_html.find('input[type=checkbox]').click(
@@ -260,9 +280,9 @@ class AssetBrowser {
 
   async refresh_filter_counts() {
     // Iterate over our list of configured facet filters
-    this.filters.forEach(async (filter) => {
+    for (const filter of this.filters){
       filter.refresh_counts(this)
-    })
+    }
 
   }
 
@@ -274,7 +294,10 @@ class AssetBrowser {
       .filter(filter => filter.config.api_attribute_key != skip_facet_key)
       // Turn the filter object into an api-compatible filter string
       .map(filter => filter.build_filter())
-      // Remove empty string
+      // Add additional filters provided in the constructor (we use concat so 
+      // we can continue our chain)
+      .concat([this.extraFilters] || [''])
+      // Remove empty strings
       .filter(filter => filter !== '')
       // Join together using AND's
       .join(' and ')
@@ -590,22 +613,26 @@ class AssetBrowser {
 
     // Same thing as the 2 above but for user-supplied attributes
     for(const extraItemAttribute of this.extraItemAttributes){
-      $return_html.append(
-        this.render_item_property(
-          extraItemAttribute.attribute_name,
-          jsonpath.query(
-            asset_data,
-            `$.data.attributes.${extraItemAttribute.attribute_key}`
-          )
-            // If they provided an inner key, use it
-            .map(attribute => 
-              extraItemAttribute.attribute_inner_key 
-                ? attribute[extraItemAttribute.attribute_inner_key]
-                : attribute
-            )
-        )
+      const data = jsonpath.query(
+        asset_data,
+        `$.data.attributes.${extraItemAttribute.attribute_key}`
       )
-    }
+        // If they provided an inner key, use it
+        .map(attribute => 
+          extraItemAttribute.attribute_inner_key 
+            ? attribute[extraItemAttribute.attribute_inner_key]
+            : attribute
+        )
+
+      if(data.length){
+        $return_html.append(
+          this.render_item_property(
+            extraItemAttribute.attribute_name,
+            data
+          )
+        )
+      }
+   }
 
     // Set up loading screens for topics, concepts, and alignments
     let $topics_node = this.render_item_property('Topics', ['Loading...'])
@@ -614,14 +641,21 @@ class AssetBrowser {
     let $concepts_node = this.render_item_property('Concepts', ['Loading...'])
     $return_html.append($concepts_node)
 
+
+    if(this.extraItemRelationships) {
+      for(const relationship of this.extraItemRelationships){
+        relationship.node = this.render_item_property(relationship.relationship_name, ['Loading...'])
+        $return_html.append(relationship.node)
+      }
+    }
+
+    // Alignments come last because they reflow the UI a lot
     let $alignments_node = this.render_item_property('Alignments', ['Loading...'])
     $return_html.append($alignments_node);
 
     // Run the rest of the code aynchronously so that the user gets the data
     // we have as soon as we have it
     (async () => {
-  
-
       // Page through all of the topics on the asset
       let topics = []
       for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/topics?fields[topics]=section.descr,descr&limit=100`)) {
@@ -656,13 +690,38 @@ class AssetBrowser {
         $concepts_node.remove()
       }
 
+      if(this.extraItemRelationships) {
+        for(const relationship of this.extraItemRelationships){
+          // Page through all of the related type for this asset
+          let related = []
+          for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/${relationship.relationship_key}?fields[${relationship.relationship_type}]=${relationship.relationship_field}&limit=100`)) {
+            related.push(...(response.data))
+          }
+          if(related.length){
+            relationship.node.replaceWith(
+              this.render_item_property(
+                relationship.relationship_name,
+                related.map(relate => jsonpath.query(relate, `$.attributes.${relationship.relationship_field}`))
+              )
+            )
+          }
+          else {
+            relationship.node.remove()
+          }
+        }
+      }
+
+      const alignment_filter = `&filter[standards]=meta.disposition IN('accepted'${this.include_predicted_alignments ? ", 'predicted" : ''})`
+
       // Page through all of the alignments on the asset. Unlike the other
       // relationships, we render immediately after getting each API page.
       // This is done by filling our map object and completely reflowing.
       let alignments_by_authority = new Map()
-      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/alignments&fields[standards]=document.publication.authorities,statement,number&limit=100`)) {
+      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/alignments&fields[standards]=document.publication.authorities,statement,number${alignment_filter}&limit=100`)) {
         // Just a simple partitioning algorithm on authority descr
         for (const alignment of response.data) {
+          // If the alignment has no data for some reason, just skip it
+          if(!alignment.attributes) continue
           // An alignment can technically have multiple authorities, albiet rarely
           for (const authority of alignment.attributes.document.publication.authorities) {
             // Either create or append to the array corresponding to our auth
@@ -680,7 +739,8 @@ class AssetBrowser {
 
           // Append the alignments, grouped by authority, to our HTML node
           const $authority_list = $(`<div class='asset-attribute-value'>`)
-          for (const authority_alignments of alignments_by_authority.entries()){
+          // Most of the muck here is in order to get a sorted array of entries
+          for (const authority_alignments of Array.from(alignments_by_authority.entries()).sort((a,b) => a[0].localeCompare(b[0]))){
             // Decompose the result of the entries() iterator
             const authority_descr = authority_alignments[0]
             const alignments = authority_alignments[1]
@@ -747,24 +807,22 @@ class AssetBrowser {
 
   render_item_property(property_name, property_list) {
     return $(`
-    <div>
-      <div class='asset-attribute-title'>
-        ${property_name}
+      <div>
+        <div class='asset-attribute-title'>
+          ${property_name}
+        </div>
+        <div class='asset-attribute-value-list'>
+          ${(property_list
+            .map( property => `
+              <div class='asset-attribute-value'>
+                ${property}
+              </div>  
+            `)
+            .join("\n"))
+          }
+        </div>
       </div>
-      <div class='asset-attribute-value-list'>
-        ${property_list
-          .map( property => `
-            <div class='asset-attribute-value'>
-              ${property}
-            </div>  
-          `)
-          .join("\n")
-        }
-      </div>
-    </div>
     `)
-
-
   }
 
 }
@@ -981,6 +1039,16 @@ class FacetFilter {
     // all the valid values for our facet and their count.
     const facet_list_node = facet_node.find('.content')
     facet.details.forEach(detail => {
+
+      // On custom properties, detail.data is a string, so we need to
+      // coerce our code below to use that value. Hacky, but oh well
+      if(typeof(detail.data) !==  'object'){
+        const value = detail.data
+        detail.data = {}
+        detail.data[facet_config.api_code] = value
+        detail.data[facet_config.api_descr] = value
+      }
+
       facet_list_node.append(`
         <div 
           class='mdc-form-field'
@@ -1031,7 +1099,7 @@ class FacetFilter {
     // For each facet on the screen...
     $(`.facet_area .${facet_config.html_class}`).find('.mdc-form-field').get().forEach(elem => {
       // Find the corresponding facet from the API call
-      const new_facet = new_facets.filter(facet => facet['data'][facet_config.api_code] == $(elem).data('id'))[0]
+      const new_facet = new_facets.filter(facet => facet['data'][facet_config.api_code] == $(elem).data('id') || facet.data === $(elem).data('id'))[0]
       const new_count = new_facet ? new_facet.count : 0
 
       // Set the count in then display
@@ -1041,7 +1109,7 @@ class FacetFilter {
       $(elem).toggleClass('disabledDiv', new_count == 0)
     })
     new_facets.forEach(facet => {
-      $(`.facet_area .${facet_config.html_name} label[for=${facet[facet_config.api_descr]}]`)
+      $(`.facet_area .${facet_config.html_class} label[for="${facet[facet_config.api_descr]}"]`)
     })
   }
 
