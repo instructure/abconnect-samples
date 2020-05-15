@@ -70,6 +70,9 @@ class AssetBrowser {
   //
   //    - pictureCallback: A callback that recieves asset data (from the API)
   //      and returns a URL to a picture. Defaults to the Certica Logo
+  //
+  //    - renderCallback: A callback that is executed after each results
+  //      render. Useful for modifying the look & feel of the results
   constructor(authenticationCallback, config) {
     this.config = config
     this.authenticationCallback = authenticationCallback
@@ -88,6 +91,8 @@ class AssetBrowser {
     this.extraFields = config.extraFields || ''
     this.extraItemAttributes = config.extraItemAttributes || []
     this.extraItemRelationships = config.extraItemRelationships || []
+
+    this.renderCallback = config.renderCallback || (() => {})
 
     this.sdk = new ABAPI(
       this.authenticationCallback
@@ -143,7 +148,7 @@ class AssetBrowser {
   }
 
   async initialize_artifact_filter() {
-    // Initialize a cloud filter pointed at Concepts
+    // Initialize a cloud filter pointed at Artifacts
     // Same properties as the browser config's facet[] properties, plus api_context
     let artifactFilter = new CloudFilter(this, {
       html_class:        'artifactsCloud',
@@ -170,7 +175,7 @@ class AssetBrowser {
 
   async initialize_topic_filter() {
     
-    // Initialize a cloud filter pointed at Concepts
+    // Initialize a cloud filter pointed at Topics
     // Same properties as the browser config's facet[] properties, plus api_context
     let topicFilter = new CloudFilter(this, {
       html_class:        'topicsCloud',
@@ -237,6 +242,12 @@ class AssetBrowser {
     const enforced_fitler = this.extraFilters ? `&filter[assets]=(${this.extraFilters})` : ''
     // Use the API to determine valid values/counts for each facet (filter option)
     let facets = (await this.sdk.get(`${BASE_URL}/assets?limit=0&facet=${requested_facet_list}${enforced_fitler}`)).meta.facets
+
+    // Sort the facets (by their index in facet_config) so they're consistent in the UI
+    facets = facets.sort( (a,b) => 
+      this.config.facets.findIndex(config => config.api_facet_key == a.facet) - 
+      this.config.facets.findIndex(config => config.api_facet_key == b.facet)
+    )
 
     // Create a DOM element to put the filters
     let $facet_area_html = $(`<div class='facet_area'></div>`)
@@ -391,7 +402,6 @@ class AssetBrowser {
     this.render_results(pager.next())
   }
 
-
   // UI Controls for how we display the resulting assets
   async set_page_size(size) {
     this.page_size = size
@@ -440,6 +450,9 @@ class AssetBrowser {
 
     // Update the page counter
     $('.position').text(`Page ${1 + (results.meta.offset / results.meta.limit)} of ${Math.ceil(results.meta.count / results.meta.limit)}`)
+
+    // Exec the user-provided callback
+    this.renderCallback(this.current_page)
 
     // Re-enable (un-grey) the asset list
     $('.assetList').removeClass('disabledDiv')
@@ -858,7 +871,7 @@ class SearchFilter {
 
   }
 
-build_filter(){
+  build_filter(){
     // Text Search (alpha-numeric only to prevent injection)
     let search = $('.textSearch input').val().replace(/[^a-zA-Z0-9]+/g, '')
     if(search){
