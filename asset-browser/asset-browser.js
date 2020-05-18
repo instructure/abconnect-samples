@@ -99,7 +99,7 @@ class AssetBrowser {
     );
 
     // Default pictureCallback is to return the Certica logo
-    this.pictureCallback = config.pictureCallback.bind(this)
+    this.pictureCallback = config.pictureCallback
     if (!this.pictureCallback) {
       this.pictureCallback = (asset) => {
         return 'img/logo.png'
@@ -605,16 +605,18 @@ class AssetBrowser {
     const asset_data = await this.sdk.get(`${BASE_URL}/assets/${guid}?${await this.get_fields()}`)
 
     // Append Subject info to the return
-    $return_html.append(
-      this.render_item_property(
-        'Subjects',
-        asset_data.data.attributes.disciplines.subjects
-          .map(subject => subject.descr)
+    if(this.config.list_subjects && asset_data.data.attributes.disciplines.subjects){
+      $return_html.append(
+        this.render_item_property(
+          'Subjects',
+          asset_data.data.attributes.disciplines.subjects
+            .map(subject => subject.descr)
+        )
       )
-    )
+    }
 
     // Append Grade info to the return
-    if(asset_data.data.attributes.education_levels.grades.length){
+    if(this.config.list_grades && asset_data.data.attributes.education_levels.grades.length){
       $return_html.append(
         this.render_item_property(
           'Grades',
@@ -653,7 +655,6 @@ class AssetBrowser {
 
     let $concepts_node = this.render_item_property('Concepts', ['Loading...'])
     $return_html.append($concepts_node)
-
 
     if(this.extraItemRelationships) {
       for(const relationship of this.extraItemRelationships){
@@ -818,7 +819,35 @@ class AssetBrowser {
     dialog.show()
   }
 
-  render_item_property(property_name, property_list) {
+  render_item_property(property_name, property_list, property_title_list) {
+
+    // When a title list is given, we render a bit differently
+    if(property_title_list){
+      return $(`
+        <div>
+          <div class='asset-attribute-title'>
+            ${property_name}
+          </div>
+          <div class='asset-attribute-value-list'>
+            ${(property_list
+              // Zip the property & title lists
+              .map( (property, i) => [property, property_title_list[i]])
+              // Convert to HTML
+              .map( properties => `
+                <div class='asset-attribute-value'>
+                  ${properties[1]}
+                </div>
+                <div class='asset-attribute-value-list'>
+                  <div class='asset-attribute-title'> Rationale </div>
+                  <div class='asset-attribute-value'> ${properties[0]} </div>
+                </div>
+              `)
+              .join("\n"))
+            }
+          </div>
+        </div>
+      `)
+    }
     return $(`
       <div>
         <div class='asset-attribute-title'>
@@ -1112,7 +1141,7 @@ class FacetFilter {
     // For each facet on the screen...
     $(`.facet_area .${facet_config.html_class}`).find('.mdc-form-field').get().forEach(elem => {
       // Find the corresponding facet from the API call
-      const new_facet = new_facets.filter(facet => facet['data'][facet_config.api_code] == $(elem).data('id') || facet.data === $(elem).data('id'))[0]
+      const new_facet = new_facets.filter(facet => facet['data'][facet_config.api_code] == $(elem).data('id') || facet.data == $(elem).data('id'))[0]
       const new_count = new_facet ? new_facet.count : 0
 
       // Set the count in then display
