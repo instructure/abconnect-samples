@@ -30,12 +30,7 @@ class ABAPI {
     while(url){
 
       // Attempt the AJAX request. Get the response
-      try{
-        var body = await this.get(url, config)
-      }
-      catch(error){
-        
-      }
+      var body = await this.get(url, config)
 
       // Return the response. Ask where to page next.
       const next = yield body
@@ -75,10 +70,16 @@ class ABAPI {
     let response = await fetch(url, config)
 
     // If we had a problem authenticating, try refreshing it
-    // (by setting partner to null, which forces get() to recalc)
     if (response.status == 401) {
-      this.partner = undefined
+      const auth = await this.authenticationCallback()
+  
+      this.partner = auth.partner_id
+      this.signature = auth.auth_signature
+      this.expires = auth.auth_expires
+      
+      url = this.authenticate(url)
 
+      // Try again. If this also fails, it thrown an error below
       response = await fetch(url, config)
     }
 
@@ -87,12 +88,12 @@ class ABAPI {
     if(response.status == 429){
 
       // Retry up to 5 times, with backoff
-      for(const retryCount of Array(5).keys()){
+      for(const retryCount of Array(20).keys()){
         // This is what causes us to sleep in between requests
-        await new Promise(r => setTimeout(r, retryCount * 500));
+        await new Promise(r => setTimeout(r, 500));
 
         // Retry the orginal call
-        response = await this.get(url, config)
+        response = await fetch(url, config)
 
         // Success! Continue as if nothing happened
         if(response.status <= 400){

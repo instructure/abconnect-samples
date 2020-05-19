@@ -110,15 +110,7 @@ class AssetBrowser {
       .then(() => {
         this.search()
       })
-      .catch((error) => {
-        if (error.message == 401) {
-          alert("There was a problem with your authentication")
-        }
-        else {
-          console.log(error)
-          alert(error.message)
-        }
-      })
+      .catch(this.handle_api_errors)
   }
 
   // Initialize the asset filters based on the user config
@@ -422,7 +414,13 @@ class AssetBrowser {
 
     // If we are rendering a new result (we have a promise), await the API call
     if (result_promise) {
-      this.current_page = (await result_promise).value
+      try{
+        this.current_page = (await result_promise).value
+      }
+      catch (error) {
+        this.handle_api_errors(error)
+        return
+      }
     }
 
     // Render the current page
@@ -865,6 +863,23 @@ class AssetBrowser {
         </div>
       </div>
     `)
+  }
+
+  // error should be an Error() with a message equal to a HTTP status code
+  handle_api_errors(error) {
+    console.log(error)
+
+    // Custom error message for errors we know about
+    if(error.message == '429'){
+      alert('The system appears to be busy right now.  Wait for a short period and try again.')
+    }
+    else if(error.message == '401'){
+      alert('There was a problem with your authentication')
+    }
+    else {
+      alert('An unknown error has occurred. See the console for details.')
+      throw error;
+    }
   }
 
 }
