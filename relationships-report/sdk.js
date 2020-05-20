@@ -78,13 +78,17 @@ class ABAPI {
     // propagated (such as API auth errors or invalid parameters)
     if(response.message == 429){
 
-      // Retry up to 5 times, with backoff
-      for(const retryCount of Array(5).keys()){
-        // This is what causes us to sleep in between requests
-        await new Promise(r => setTimeout(r, retryCount * 500));
+      // Retry up to 100 times, with backoff
+      for(const retryCount of Array(100).keys()){
+        // This is what causes us to sleep in between requests.
+        // Double time each request, for a max of 30 seconds
+        await new Promise(r => setTimeout(r, Math.min(
+          (retryCount**2) * 500,
+          30000
+        )));
 
         // Retry the orginal call
-        response = await this.get(url, config)
+        response = await fetch(url, config)
 
         // Success! Continue as if nothing happened
         if(response.status <= 400){

@@ -1,8 +1,8 @@
 const HOST = 'https://api.academicbenchmarks.com'
 const STANDARDS_URL = HOST + "/rest/v4.1/standards";
 const TOPICS_URL = HOST + "/rest/v4.1/topics";
-const RETRY_LIMIT=5;
-const RETRY_LAG=200;
+const RETRY_LIMIT=20;
+const RETRY_LAG=500;
 
 var gPartnerID = null;
 var gSignature = null;
@@ -90,7 +90,7 @@ function checkTopicsLicenseLevel() {
               var ajaxContext = this; 
               setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
             } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
             } 
             return; 
           default: 
@@ -192,7 +192,7 @@ function standardSelected(currentStandard) {
                 var ajaxContext = this; 
                 setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
               } else { 
-                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+                alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
               } 
               return; 
             default: 
