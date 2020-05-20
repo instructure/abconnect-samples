@@ -11,8 +11,8 @@ const LIST_NAME = {
 const AUTH_WIDGET = "dest_authority";
 const PUB_WIDGET = "dest_publication";
 const DOC_WIDGET = "dest_doc";
-const RETRY_LIMIT=5;
-const RETRY_LAG=200;
+const RETRY_LIMIT=20;
+const RETRY_LAG=500;
 
 var gPartnerID = null;
 var gSignature = null;
@@ -123,7 +123,7 @@ function loadFacets(listName) {
               var ajaxContext = this; 
               setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
             } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
             } 
             return; 
           default: 
@@ -194,7 +194,7 @@ function lookupAncestors(listName) {
               var ajaxContext = this; 
               setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
             } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
             } 
             return; 
           default: 
@@ -401,7 +401,7 @@ function selectRelatedStandard() {
                   var ajaxContext = this; 
                   setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
                 } else { 
-                  alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+                  alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
                 } 
                 return; 
               default: 
@@ -479,7 +479,7 @@ function standardSelected(currentStandard) {
                 var ajaxContext = this; 
                 setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
               } else { 
-                alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+                alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
               } 
               return; 
             default: 
@@ -677,7 +677,7 @@ function loadSiblings() {
               var ajaxContext = this; 
               setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
             } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
             } 
             return; 
           default: 
@@ -804,7 +804,7 @@ function checkTopicsLicenseLevel() {
               var ajaxContext = this; 
               setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
             } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
             } 
             return; 
           default: 
@@ -857,7 +857,7 @@ function checkRelationshipLicenseLevel() {
               var ajaxContext = this; 
               setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
             } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
+              alert(`The system appears to be busy right now.  Wait for a short period and try again.`);
             } 
             return; 
           default: 

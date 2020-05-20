@@ -87,7 +87,7 @@ class ABAPI {
     // propagated (such as invalid parameters)
     if(response.status == 429){
 
-      // Retry up to 5 times, with backoff
+      // Retry up to 20 times, with no backoff
       for(const retryCount of Array(20).keys()){
         // This is what causes us to sleep in between requests
         await new Promise(r => setTimeout(r, 500));
