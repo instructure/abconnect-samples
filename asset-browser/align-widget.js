@@ -1,445 +1,433 @@
 const SELECTED = 'selected';
 const STANDARDS_BROWSER_SELECTOR = '.standardsSelect .standard';
-var gStandardsBrowserConfig = {};
-var gWidgetStandardsList = {};
-//
-// selectStandards - When the standards button is pressed, load the browse widget
-//
-function selectStandards() {
-  //
-  // Initialize the browser with the latest config
-  //
-  initStandardsBrowser();
-  
-  parentElement = $('.ab-standards-dialog')
-  
-  var dialog = mdc.dialog.MDCDialog.attachTo(document.querySelector('.ab-standards-dialog'));
-  
-  dialog.show();
-}
-//
-// saveStandards - make note of the selected standards and save the configuration for later
-//
-function saveStandards() {
 
-  gStandardsBrowserConfig = $(STANDARDS_BROWSER_SELECTOR).standardsBrowser('getConfiguration'); // remember the settings so we can start where we were
+class AlignFilter {
+  browser
+  config
+
+  standards_browser_config
+  standardsList = {}
+
+  constructor(browser, config){
+    this.browser = browser
+    this.set_config(config)
+  }
+
+  build_filter(){
+    const guids = Object.keys(this.standardsList)
+
+    if(!guids.length){
+      return ''
+    }
+    return `(alignments.id IN (${guids.join(', ')}))`
+  }
+
+  set_config(config){
+    // This is required to be exactly 'standards' for filtering to work correctly
+    config.api_attribute_key = 'alignments'
+    this.config = config
+  }
+
+  // Attach the dialog modal to the DOM
+  show_dialog(){
+    // Reload the standards browser in order to apply our new filters
+    this.reconfigure_standards_browser()
+
+    mdc.dialog.MDCDialog.attachTo(document.querySelector('.ab-standards-dialog')).show()
+  }
+
+  // Make note of the selected standards and save the configuration for later. Update the search
+  save_standards() {
+
+    // Remember the settings so we can start where we were
+    this.standards_browser_config = ($(STANDARDS_BROWSER_SELECTOR).standardsBrowser('getConfiguration'))
+
+    // Loop over the assets, construct the label and add them to the supplied list
+    var chipSpace = $('.standardsChips');
+    chipSpace.empty();
+
+    Object.keys(this.standardsList).forEach(GUID => {
+
+      // If we have no number, use up to the first 10 characters of the statement
+      var number = this.standardsList[GUID].number;
+      if (!number) {
+        const statement = this.standardsList[GUID].statement
+        number = statement.substr(0, Math.min(statement.length, 10))
+      }
+
+      // the line format is "<number> <statement>"
+      chipSpace.append(`
+        <span class="mdl-chip mdl-chip--deletable">
+            <span class="mdl-chip__text" title="${this.standardsList[GUID].statement}" value="${GUID}">${number} </span>
+            <button
+              type="button"
+              class="mdl-chip__action"
+              value="${GUID}"
+            ><i class="material-icons">cancel</i></button>
+        </span>`
+      );
+    })
+
+    // Attach the click handlers for removing chips
+    chipSpace.find('button.mdl-chip__action').click((event) => {
+      const guid = $(event.target).closest('.mdl-chip__action').attr('value')
+
+      delete this.standardsList[guid]; 
+      this.save_standards()
+    })
+
+    this.browser.search()
+  }
+
+  async refresh_counts() {
+    // Get the list of aligned standards
+    $('.standardsChips .mdl-chip__text').get().forEach(async chip => {
+      const standardGUID = $(chip).attr('value')
+
+      var facetFilter = await this.browser.get_filters('alignments')
+
+      // include the appropriate relationships in the search
+      var standardsFilter = "alignments.meta.disposition in ('accepted')";
+      if (this.config.predicted){
+        standardsFilter = "alignments.meta.disposition in ('accepted', 'predicted')"
+      }
+      standardsFilter += ` and alignments.id eq ${standardGUID}`
+
+      // Add our filters to the ones we got from the browser (if we did get some)
+      if(facetFilter == '') {
+        facetFilter = `filter[assets]=(${standardsFilter})`
+      }
+      else {
+        // We remove the trailing parenthesis and then tack our filter on the end
+        facetFilter = facetFilter.substring(0, facetFilter.length - 1);
+        facetFilter += ' and ' + standardsFilter + ')'
+      }
+
+      // Call the API to get the current matching count
+      const data = await this.browser.sdk.get(`${BASE_URL}/assets/?${facetFilter}&limit=0`)
+
+      // Strip the existing number off the chip
+      var number = $(chip).text()
+      number = number.replace(/\(\d+\)$/, '')
+
+      // Add the new number
+      number += '(' + data.meta.count + ')';
+
+      // Update the chip with the new text
+      $(chip).text(number);
+      })
+  }
+
+  // (re)create the standards browser. Called at the beginning as well as
+  // when they reopen the widget (so that the new filters are applied)
+  async reconfigure_standards_browser() {
+    var config = {
+      selectMode: 'multiple',
+      enableDoubleClick: true,
+      showAssetCount: true,
+      onStandardDoubleClick: (event, GUID) => {
+        this.add_standard(GUID);
+      },
+      onStandardSelect: (event, GUID) => {
+        this.standards_changed();
+      },
+      onStandardDeselect: (event, GUID) => {
+        this.standards_changed();
+      },
+      onError: (event, message) => {
+        alert(message);
+      }
+    };
+
+    // Map the authentication credentails to the standards browser config
+    let credentials = await this.browser.authenticationCallback()
+
+    config.authCredentials = {
+      ID: credentials.partner_id,
+      signature: credentials.auth_signature,
+      expires: credentials.auth_expires 
+    }
+
+    // This stores the currently selected standards browser state
+    if (this.standards_browser_config) {
+      config.uiEntityState = this.standards_browser_config;
+    }
+
+    // Get the current asset filter. Strip off the leading filter[assets]=( and
+    // the trailing )
+    let filter = (await this.browser.get_filters('alignments'))
+      .replace(/^filter\[assets\]=\(/, '')
+      .replace(/\)$/, ' and ')
+
+    // Add our disposition filter
+    if(this.config.predicted){
+      filter += "alignments.meta.disposition IN ('accepted', 'predicted')"
+    }
+    else {
+      filter += "alignments.meta.disposition IN ('accepted')"
+    }
+
+    // Pass to the standards browser
+    config.assetCountFilter = filter
+
+    // If we already have a standards browser loaded, destroy it
+    try {
+      $(STANDARDS_BROWSER_SELECTOR).standardsBrowser('destroy')
+    } catch (e) { }
+    
+    $(STANDARDS_BROWSER_SELECTOR).standardsBrowser(config);
+  }
+
+  // Ready the AlignFilter to be attached to the DOM
+  async initialize_filter() {
+    // Add the modal HTML to the DOM so we have somewhere to attach the 
+    // standards browser widget ot 
+    this.attach_standards_browser_to_DOM()
+
+    // Attach the standards browser JS to the modal we just created
+    await this.reconfigure_standards_browser()
+
+    // Load the select list (on the right of the modal) based on the currently
+    // selected standards
+    var list = $( "ul.standardsList");
+    list.empty();
+    for (const GUID in this.standardsList) {
+      var label = '';
+      if (this.standardsList[GUID].number) label += this.standardsList[GUID].number + ' ';
+      label += this.standardsList[GUID].statement; // build the visual element
+
+      const $item = $(`
+        <li class="mdc-list-item" value="${GUID}">
+          <div class="limitItem">
+            ${label}
+          </div>
+        </li>
+      `);
+
+      $item.click(event => this.toggle_standard(event))
+
+      list.append($item);
+    }
+    this.standards_changed(); // update the buttons
+
+    // Add the widget to the filter list on the left
+    const $return_html = $(`
+      <div class="standardsAligned">
+        <details>
+            <summary>
+              Aligned Standards
+            </summary>
+            <div class="content">
+              <div class="selectedStandards">
+              </div>
+              <div class="standardsChips">
+              </div>
+              <div class="buttonArea">
+                <button class="mdc-fab mdc-fab--mini material-icons" aria-label="Add">
+                  <span class="mdc-fab__icon"> add </span>
+                </button>
+              </div>
+            </div>
+        </details>
+      </div>
+    `)
+
+    $return_html.find('.buttonArea button').click(
+      () => this.show_dialog()
+    )
+
+    return $return_html
+  }
+
+  // This HTML is a modal we load the standards browser widget into
+  async attach_standards_browser_to_DOM(){
+    
+    const $standards_browser = $(`
+      <div class="standardsSelect">
+        <aside id="mdc-dialog-with-list"
+          class="mdc-dialog ab-standards-dialog"
+          role="alertdialog"
+          aria-labelledby="mdc-dialog-with-list-label"
+          aria-describedby="mdc-dialog-with-list-description">
+          <div class="mdc-dialog__surface">
+            <header class="mdc-dialog__header">
+              <h2 id="mdc-dialog-with-list-label" class="mdc-dialog__header__title">
+                Select Standards
+              </h2>
+            </header>
+            <section id="mdc-dialog-with-list-description" class="mdc-dialog__body" width="1400" height="800">
+              <div class="struct">
+                <div class="content">
+                  <div class="standard"></div>
+                </div>
+                <div class="arrowSpace">
+                    <div class="buttonArea">
+                      <button class="mdc-fab mdc-fab--mini material-icons addStandards" aria-label="Add" disabled>
+                        <span class="mdc-fab__icon">
+                          add
+                        </span>
+                      </button>
+                    </div>
+                    <div class="buttonArea">
+                      <button class="mdc-fab mdc-fab--mini material-icons removeStandards" aria-label="Remove" disabled>
+                        <span class="mdc-fab__icon">
+                          remove
+                        </span>
+                      </button>
+                    </div>
+                </div>
+                <div class="selectedArea">
+                  <ul class="mdc-list mdc-list--dense standardsList">
+                  </ul>
+                </div>
+              </div>
+            </section>
+            <footer class="mdc-dialog__footer">
+              <button type="button" class="mdc-button mdc-dialog__footer__button mdc-dialog__footer__button--cancel">Cancel</button>
+              <button type="button" class="mdc-button mdc-dialog__footer__button mdc-dialog__footer__button--accept">OK</button>
+            </footer>
+          </div>
+          <div class="mdc-dialog__backdrop"></div>
+        </aside>
+      </div>
+    `)
+
+
+    // Attach button click handlers
+    $standards_browser.find('button[aria-label=Add]').click(
+      () => this.add_standards()
+    )
+    $standards_browser.find('button[aria-label=Remove]').click(
+      () => this.remove_standards()
+    )
+    $standards_browser.find('button.mdc-dialog__footer__button--accept').click(
+      () => this.save_standards()
+    )
+
+    $('.page .struct').append($standards_browser)
+  }
+
+  // Update the arrow buttons in the standards browser widget
+  standards_changed() {
+
+    // Get the current standards highlighted (on the left) in the browser
+    var selection = $(STANDARDS_BROWSER_SELECTOR).standardsBrowser('getSelection')
+
+    // If there are any, enable any disabled buttons
+    $('.addStandards')
+      .prop('disabled', selection.length == 0)
+
+    // Get the current standards highlighted (on the right) in the browser
+    selection = $(".standardsList ." + SELECTED)
+
+    // If there are any, enable any disabled buttons
+    $('.removeStandards')
+      .prop('disabled', selection.length == 0)
+
+    // Get all of the standards on the 
+    selection = $(".standardsList .mdc-list-item")
+
+    // If there are any, enable any disabled buttons
+    $('.save')
+      .prop('disabled', selection.length == 0);
+  }
+
+  // Add the currently selected standards to the list window
+  add_standards() {
+    // Get a list of the current standard GUIDs from list on the right
+    const currentStandards = $('ul.standardsList')
+      .find('li.mdc-list-item')
+      .get()
+      .map(node => $(node).attr('value'))
+
+    // Get a list of GUIDs to add to the list on the right 
+    const guidList = $(STANDARDS_BROWSER_SELECTOR)
+      // Ask the standards browser for the selected standards
+      .standardsBrowser('getSelection')
+      // Filter out existing standards
+      .filter(guid => !currentStandards.includes(guid))
+      // Surrounds with quote marks
+      .map(guid => "'" + guid + "'")
+      // Join with comma (suitable for use in the IN() statement below)
+      .join(', ')
+
+    // Bail if we filtered out all of our potential standards
+    if(!guidList){
+      return
+    }
+
+    var sourceUrl = BASE_URL + '/standards?filter[standards]=(' + encodeURIComponent('id in (' + guidList + ')') + ')&facet_summary=_none&fields[standards]=number,statement'
+
+    this.browser.sdk.get(sourceUrl).then((data) => this.add_standards_to_list(data))
+  }
+
+  // Add a standard to the list window (in response to a double click event)
+  add_standard(GUID) {
+    // Get a list of the current standard GUIDs from list on the right
+    const currentStandards = $('ul.standardsList')
+      .find('li.mdc-list-item')
+      .get()
+      .map(node => $(node).attr('value'))
+
+    // Bail if the standards already exists on the right
+    if(currentStandards.includes(GUID)){
+      return
+    }
+
+    var sourceUrl = BASE_URL + '/standards?filter[standards]=(' + encodeURIComponent("id eq '" + GUID + "'") + ')&fields[standards]=number,statement&facet_summary=_none'
+
+    this.browser.sdk.get(sourceUrl).then((data) => this.add_standards_to_list(data))
+  }
+  // addStandardsToList - Add standards to the list window (if any are selected)
+  //  data - the response from the API call
   //
-  // Loop over the assets, construct the label and add them to the supplied list
-  //
-  var chipSpace = $('.standardsChips');
-  chipSpace.empty();
-  var chips = '';
-  for (var GUID in gWidgetStandardsList) {
-    if (!gWidgetStandardsList.hasOwnProperty(GUID)) continue;
-    //
-    // Make sure the number is valid and readable
-    //
-    var number = gWidgetStandardsList[GUID].number;
-    if (!number) {
-      var limit = 10;
-      if (gWidgetStandardsList[GUID].statement.length <= limit)
-        limit = gWidgetStandardsList[GUID].statement.length - 1;
+  add_standards_to_list(data) {
+    var list = $( "ul.standardsList");
+
+    // Loop over the standards we got back from the API
+    for (const standard of data.data) {
+
+      this.standardsList[standard.id] = {
+        number: standard.attributes.number.enhanced,
+        statement: standard.attributes.statement.descr
+      }; // track the list of selected standards
       
-      number = gWidgetStandardsList[GUID].statement.substr(0,limit);
-    }
-    //
-    // the line format is "<number> <statement>"
-    //
-    chips += `
-    <span class="mdl-chip mdl-chip--deletable">
-        <span class="mdl-chip__text" title="${gWidgetStandardsList[GUID].statement}" value="${GUID}">${number} </span>
-        <button type="button" class="mdl-chip__action" value="${GUID}" onclick="dropStandard(event);"><i class="material-icons">cancel</i></button>
-    </span>`;
-  }
-  chipSpace.html(chips);
-  //
-  // Refresh the list
-  //
-  updateDisplay();
-}
-//
-// dropStandard - remove the specified standard from the list (chips) and update the display
-//  event - the storage event
-//
-function dropStandard(ev) {
-  
-  delete gWidgetStandardsList[ev.target.parentNode.value]; // remove the standard from the list used for filtering
-  ev.target.parentNode.parentNode.parentNode.removeChild(ev.target.parentNode.parentNode); // remove the chip.  I hate this notation.  :0
-  
-  updateDisplay();
-}
-//
-// updateStandardsAssetsCount - refresh the asset counts on the standards chips
-//
-function updateStandardsAssetsCount() {
-  var chips = $('.standardsChips .mdl-chip'); // get the list of aligned standards
-  for (var i=0; i < chips.length; i++) { // loop over the related chips
-    var guid = chips[i].firstElementChild.getAttribute('value'); // grab the GUID from the chip value
-    countStandardsRelatedAssets(guid); // update the count
-  }
-}
-//
-// countStandardsRelatedAssets - count the number of assets related to this standard (taking the current filtering into account)
-//  GUID - standard in question
-//
-function countStandardsRelatedAssets(GUID) {
-  var facetFilter = buildFilter(['standardsAligned']);
-  const leadIn = '&filter[assets]=(';
-  //
-  // include the appropriate relationships in the search
-  //
-  var dispositionSearch = "standards.disposition in ('accepted', 'predicted')";
-  if (!gIncludePredicted) dispositionSearch = "standards.disposition EQ 'accepted'";
-  if (facetFilter) { // there is some other criteria
-    //
-    // pick apart the filter and add this single standard as part of the criteria
-    //
-    facetFilter = decodeURIComponent(facetFilter.substr(leadIn.length, facetFilter.length - leadIn.length - 1)); // strip off the leading and trailing stuff and then decode the string
-    facetFilter += " AND standards.id eq '" + GUID + "' AND " + dispositionSearch;
-    facetFilter = leadIn + encodeURIComponent(facetFilter) + ')';
-  } else { // there is no filter criteria
-    facetFilter = leadIn + encodeURIComponent("standards.id eq '" + GUID + "' AND " + dispositionSearch) + ')';
-  }
-  var sVariableArguments = '?limit=0&facet_summary=_none' + facetFilter;
-  //
-  // construct the URL to count the assets
-  //
-  var sourceUrl = ASSETS_URL + sVariableArguments;
+      var label = '';
+      if (standard.attributes.number.enhanced) label += standard.attributes.number.enhanced + ' ';
+      label += standard.attributes.statement.descr; // build the visual element
 
-  sourceUrl += authenticationParameters(); // add the auth stuff
-  //
-  // request the data
-  //
-  $.ajax(
-    { 
-      url: sourceUrl,
-      crossDomain: true, 
-      dataType: 'json', 
-      tryCount: 0, 
-      retryLimit: RETRY_LIMIT,
-      success: function(data,status) {
-          setStandardAssetCount(data, GUID);
-        },
-      error: function(xhr, status, error) 
-        { 
-        switch (xhr.status) {
-          case 503: // various resource issues
-          case 504: 
-          case 408: 
-          case 429: 
-            this.tryCount++; 
-            if (this.tryCount <= this.retryLimit) { //try again 
-              var ajaxContext = this; 
-              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
-            } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
-            } 
-            return; 
-          default: 
-            alert(`Error retrieving standards facet counts from AB Connect. ${xhr.responseText}`);
-        } 
-      } 
-    } 
-  ); 
-
-}
-//
-// setStandardAssetCount - update the display
-//  data - API response
-//  GUID - standard in question
-//
-function setStandardAssetCount(data, GUID) {
-  var chip = $('[value=' + GUID + ']:eq(0)'); // grab the chip in question
-  var number = chip.text(); // get the span text
-  number = number.replace(/\(\d+\)$/, ''); // strip the previous number count (if any)
-  number += '(' + data.meta.count + ')'; // put the new number in there
-  chip.text(number); // update the chip
-}
-//
-// initStandardsBrowser - initialize the standards browser
-//
-function initStandardsBrowser() {
-  //
-  // if there are any values selected in the document widget, use those as defaults.  If the actual standards document itself is selected,
-  // use the selections as the defaults for the standards selector and hide the controls.  We do this because selecting any standards in a different
-  // document in the standards browser will end up with 0 assets.
-  //
-  //
-  // Load the standards browser
-  //
-  var config = {
-    selectMode: 'multiple',
-    enableDoubleClick: true,
-    showAssetCount: true,
-    authCredentials: {
-      ID: Provider.ID,
-      signature: Provider.signature,
-      expires: Provider.expires
-    },
-    onStandardDoubleClick: function(event, GUID){
-      addStandard(GUID);
-    },
-    onStandardSelect: function(event, GUID){
-      standardsChanged();
-    },
-    onStandardDeselect: function(event, GUID){
-      standardsChanged();
-    },
-    onError: function(event, message){
-      alert(message);
-    }
-  };
-  if (gStandardsBrowserConfig) {
-    config.uiEntityState = gStandardsBrowserConfig;
-  }
-  //
-  // setup the asset count filter criteria
-  //
-  var sFilter = buildFilter(['standardsAligned', 'standardsDoc']);
-  if (sFilter) {
-    if (!gIncludePredicted) {
-      sFilter = sFilter.substr(0, sFilter.length-1) + " AND alignments.meta.disposition EQ 'accepted')";
-    } else {
-      sFilter = sFilter.substr(0, sFilter.length-1) + " AND alignments.meta.disposition in ('accepted', 'predicted'))";
-    }
-
-    var leadin = "&filter[assets]=(";
-    config.assetCountFilter = decodeURIComponent(sFilter.substr(leadin.length, sFilter.length-leadin.length-1)); // the facet filter includes the full encoded filter string, but the widget wants just the decoded filter statement
-  }
-
-  try {
-    $(STANDARDS_BROWSER_SELECTOR).standardsBrowser('destroy')
-  } catch (e) {
-    
-  }
-  
-  $(STANDARDS_BROWSER_SELECTOR).standardsBrowser(config);
-  //
-  // Load the select list
-  //
-  var list = $( "ul.standardsList");
-  list.empty();
-  for (var GUID in gWidgetStandardsList) {
-    
-    if (!gWidgetStandardsList.hasOwnProperty(GUID)) continue; // skip this item if it isn't a standard
-    
-    var label = '';
-    if (gWidgetStandardsList[GUID].number) label += gWidgetStandardsList[GUID].number + ' ';
-    label += gWidgetStandardsList[GUID].statement; // build the visual element
-
-    var item = `
-        <li class="mdc-list-item" onclick="toggleStandard(event)" value="${GUID}">
+      var $item = $(`
+        <li class="mdc-list-item" value="${standard.id}">
           <div class="limitItem">
             ${label}
           </div>
-        </li>`;
+        </li>
+      `);
 
-    list.append(item);
-  }
-  standardsChanged(); // update the buttons
-}
-//
-// standardsChanged - update the arrow buttons
-//
-function standardsChanged() {
-  //
-  // get the current number of standards selected in the browser
-  //
-  var selection = $(STANDARDS_BROWSER_SELECTOR).standardsBrowser('getSelection');
-  //
-  // If there are any, enable any disabled buttons
-  //
-  var button = $('.addStandards');
-  if (selection.length > 0) {
-    button.prop('disabled', false);
-  } else {
-    button.prop('disabled', true);
-  }
-  //
-  // get the current number of selected standards
-  //
-  selection = $(".standardsList ." + SELECTED);
-  //
-  // If there are any, enable any disabled buttons
-  //
-  button = $('.removeStandards');
-  if (selection.length > 0) {
-    button.prop('disabled', false);
-  } else {
-    button.prop('disabled', true);
-  }
-  //
-  // get the current number of standards
-  //
-  selection = $(".standardsList .mdc-list-item");
-  //
-  // If there are any, enable any disabled buttons
-  //
-  button = $('.save');
-  if (selection.length > 0) {
-    button.prop('disabled', false);
-  } else {
-    button.prop('disabled', true);
-  }
-}
-//
-// addStandards - Add standards to the list window (if any are selected)
-//
-function addStandards() {
-  var GUIDs = $(STANDARDS_BROWSER_SELECTOR).standardsBrowser('getSelection');
-  if (GUIDs.length === 0) return; // nothing selected, skip
-  //
-  // loop over the selected standards and add them to the list
-  //
-  var sGUIDlist = '';
-  for (var i=0; i< GUIDs.length; i++) {
-    var GUID = GUIDs[i];
-    
-    sGUIDlist += "'" + GUID + "',";
-  }
-  sGUIDlist = sGUIDlist.substring(0,sGUIDlist.length-1); // strip the trailing comma
-  var sourceUrl = STANDARDS_URL + '?filter[standards]=(' + encodeURIComponent('id in (' + sGUIDlist + ')') + ')&facet_summary=_none&fields[standards]=number,statement'
-  
-  sourceUrl += authenticationParameters(); // do the auth bit
-  //
-  // request the data
-  //
-  $.ajax(
-    { 
-      url: sourceUrl,
-      crossDomain: true, 
-      dataType: 'json', 
-      tryCount: 0, 
-      retryLimit: RETRY_LIMIT,
-      success: function(data,status)
-        {
-        addStandardsToList(data);
-        },
-      error: function(xhr, status, error) 
-        { 
-        switch (xhr.status) {
-          case 503: // various resource issues
-          case 504: 
-          case 408: 
-          case 429: 
-            this.tryCount++; 
-            if (this.tryCount <= this.retryLimit) { //try again 
-              var ajaxContext = this; 
-              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
-            } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
-            } 
-            return; 
-          default: 
-            alert(`Error retrieving standards details for chips from AB Connect. ${xhr.responseText}`);
-        } 
-      } 
-    } 
-  ); 
-}
-//
-// addStandard - Add a standard to the list window (in response to a double click event)
-//
-function addStandard(GUID) {
-  var sourceUrl = STANDARDS_URL + '?filter[standards]=(' + encodeURIComponent("id eq '" + GUID + "'") + ')&fields[standards]=number,statement&facet_summary=_none'
-  
-  sourceUrl += authenticationParameters(); // do the auth bit
-  //
-  // request the data
-  //
-  $.ajax(
-    { 
-      url: sourceUrl,
-      crossDomain: true, 
-      dataType: 'json', 
-      tryCount: 0, 
-      retryLimit: RETRY_LIMIT,
-      success: function(data,status)
-        {
-        addStandardsToList(data);
-        },
-      error: function(xhr, status, error) 
-        { 
-        switch (xhr.status) {
-          case 503: // various resource issues
-          case 504: 
-          case 408: 
-          case 429: 
-            this.tryCount++; 
-            if (this.tryCount <= this.retryLimit) { //try again 
-              var ajaxContext = this; 
-              setTimeout($.ajax.bind(null, ajaxContext), this.tryCount * RETRY_LAG); 
-            } else { 
-              alert(`AB Connect is currently heavily loaded.  We retried several times but still haven't had an success.  Wait a few minutes and try again.`);
-            } 
-            return; 
-          default: 
-            alert(`Error retrieving standards details from AB Connect. ${xhr.responseText}`);
-        } 
-      } 
-    } 
-  ); 
-}
-//
-// addStandardsToList - Add standards to the list window (if any are selected)
-//  data - the response from the API call
-//
-function addStandardsToList(data) {
-  //
-  // loop over the standards
-  //
-  var list = $( "ul.standardsList");
-  for (var i=0; i < data.data.length; i++) {
-    var standard = data.data[i];
-    
-    if (gWidgetStandardsList.hasOwnProperty(standard.id)) continue; // skip this standard if it is already in the list
-    
-    gWidgetStandardsList[standard.id] = {
-      number: standard.attributes.number.enhanced,
-      statement: standard.attributes.statement.descr
-    }; // track the list of selected standards
-    
-    var label = '';
-    if (standard.attributes.number.enhanced) label += standard.attributes.number.enhanced + ' ';
-    label += standard.attributes.statement.descr; // build the visual element
+      $item.click(event => this.toggle_standard(event))
 
-    var item = `
-        <li class="mdc-list-item" onclick="toggleStandard(event)" value="${standard.id}">
-          <div class="limitItem">
-            ${label}
-          </div>
-        </li>`;
+      list.append($item);
+    }
+    this.standards_changed(); // update the buttons
+  }
 
-    list.append(item);
+  // Mark a standard as selected when clicked in the standards browser
+  toggle_standard(ev) {
+    $(ev.target).parent().toggleClass(SELECTED);
+    
+    this.standards_changed();
   }
-  standardsChanged(); // update the buttons
-}
-//
-// toggleStandard - toggle the selection of the clicked standard
-//  event
-//
-function toggleStandard(ev) {
-  //
-  // toggle the selected status
-  //
-  $(ev.target).parent().toggleClass(SELECTED);
-  
-  standardsChanged();
-}
-//
-// removeStandards - Remove standards from the list window
-//
-function removeStandards() {
-  //
-  // get the current of standards selected
-  //
-  var selection = $(".standardsList ." + SELECTED);
-  //
-  // loop over the standards
-  //
-  for (var i=0; i < selection.length; i++) {
-    delete gWidgetStandardsList[selection[i].attributes['value'].value];
-    selection.remove();
+
+  // Removethe highlighetd standards from the list window
+  remove_standards() {
+    var selection = $(".standardsList ." + SELECTED);
+
+    for (const selected of selection) {
+      delete this.standardsList[ selected.attributes['value'].value ];
+      selection.remove();
+    }
+
+    this.standards_changed();
   }
-  standardsChanged(); // update the buttons
+
 }

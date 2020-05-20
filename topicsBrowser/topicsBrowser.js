@@ -1,7 +1,7 @@
 // URLs
 const HOST = 'https://api.academicbenchmarks.com';
-const STANDARDS_URL = HOST + '/rest/v4/standards';
-const TOPICS_URL = HOST + '/rest/v4/topics';
+const STANDARDS_URL = HOST + '/rest/v4.1/standards';
+const TOPICS_URL = HOST + '/rest/v4.1/topics';
 
 // Grade selectors
 const GRADE_CLASS = '.gradeSelect';

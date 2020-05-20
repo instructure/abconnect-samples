@@ -1,6 +1,6 @@
 const HOST = 'https://api.academicbenchmarks.com'
-const STANDARDS_URL = HOST + "/rest/v4/standards";
-const TOPICS_URL = HOST + "/rest/v4/topics";
+const STANDARDS_URL = HOST + "/rest/v4.1/standards";
+const TOPICS_URL = HOST + "/rest/v4.1/topics";
 const DETAILS_LABEL_REL = 'Details of Related Standard';
 const DETAILS_LABEL = 'Details of Source Standard';
 const LIST_NAME = {

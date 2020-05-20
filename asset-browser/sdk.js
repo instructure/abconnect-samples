@@ -3,20 +3,19 @@ class ABAPI {
   signature
   exipires
 
-  constructor(partner, signature, expires){
-    this.partner = partner
-    this.signature = signature
-    this.exipires = expires
+  authenticationCallback
+
+  constructor(authenticationCallback){
+    this.authenticationCallback = authenticationCallback
   }
 
-  // TODO: Refresh authentication when it expires & we have a key
   authenticate(url){
     let original = new URL(url)
     let query = new URLSearchParams(original.search)
 
     query.set('partner.id', this.partner)
     query.set('auth.signature', this.signature)
-    query.set('auth.expires', this.exipires)
+    query.set('auth.expires', this.expires)
 
     original.search = '?' + query.toString()
     
@@ -30,22 +29,15 @@ class ABAPI {
     // Run until we consume the generator (usually next()'ing past the end)
     while(url){
 
-      // Get the next (or prev, self, last, etc.) page of data requested
-      // by the consumer
+      // Attempt the AJAX request. Get the response
       try{
         var body = await this.get(url, config)
       }
       catch(error){
-        console.log(error)
+        
       }
 
       // Return the response. Ask where to page next.
-      // There's a lot here. Basically,
-      //   return body to the consumer who called next()
-      //   user does whatever it is that users do
-      //   user calls next('some_string')
-      //     ('some_string' is stored in the const next)
-      //   program resumes execution on this line
       const next = yield body
 
       // Set the URL based on where we want to page to. Default is forward.
@@ -70,13 +62,29 @@ class ABAPI {
   }
   
   async get(url, config = {}){
+    // If authentication is missing, get it
+    if(!this.partner){
+      const auth = await this.authenticationCallback()
+
+      this.partner = auth.partner_id
+      this.signature = auth.auth_signature
+      this.expires = auth.auth_expires
+    }
     url = this.authenticate(url)
 
-    const response = await fetch(url, config)
+    let response = await fetch(url, config)
 
-    // We can handle API throttling here. Everything else should get
-    // propagated (such as API auth errors or invalid parameters)
-    if(response.message == 429){
+    // If we had a problem authenticating, try refreshing it
+    // (by setting partner to null, which forces get() to recalc)
+    if (response.status == 401) {
+      this.partner = undefined
+
+      response = await fetch(url, config)
+    }
+
+    // We can also handle API throttling here. Everything else should get
+    // propagated (such as invalid parameters)
+    if(response.status == 429){
 
       // Retry up to 5 times, with backoff
       for(const retryCount of Array(5).keys()){
@@ -92,23 +100,18 @@ class ABAPI {
         }
       }
     }
-
     // If there's an internal server error, don't try to parse the JSON, just bail
     if(response.status >= 500){
       throw new Error(response.status)
     }
 
-
     const body = await response.json()
 
     // Throw the rest of the errors
     if(response.status >= 400){
-      console.log(body)
-      throw new Error(response.status)
+     throw new Error(response.status)
     }
 
     return body
   }
 }
-
-module.exports = ABAPI

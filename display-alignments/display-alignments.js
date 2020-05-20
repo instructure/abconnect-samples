@@ -1,6 +1,6 @@
 const HOST = 'https://api.academicbenchmarks.com'
-const ASSETS_URL = HOST + "/rest/v4/assets";
-const STANDARDS_URL = HOST + "/rest/v4/standards";
+const ASSETS_URL = HOST + "/rest/v4.1/assets";
+const STANDARDS_URL = HOST + "/rest/v4.1/standards";
 const STANDARDS_PAGE_SIZE = 100;
 const RETRY_LIMIT=5;
 const RETRY_LAG=200;
@@ -192,14 +192,14 @@ function showAlignments(guid) {
   //
   // build the filter criteria
   //
-  var filter = "disposition in ('predicted','accepted')"; // limit the standards to accepted and predicted (i.e. don't include rejected standards)
+  var filter = "meta.disposition in ('predicted','accepted')"; // limit the standards to accepted and predicted (i.e. don't include rejected standards)
   if (authorityGuid) { // if an authority is selected
     filter += ` AND document.publication.authorities.guid eq '${authorityGuid}'` // limit the scope to that authority
   }
   //
   // request the standards and add it to the display
   //
-  var sourceUrl = ASSETS_URL + '/' + guid + "/standards?filter[standards]=(" + encodeURIComponent(filter) + ")&limit=" + STANDARDS_PAGE_SIZE;
+  var sourceUrl = ASSETS_URL + '/' + guid + "/alignments?filter[standards]=(" + encodeURIComponent(filter) + ")&limit=" + STANDARDS_PAGE_SIZE;
   logCall(sourceUrl, "Find aligned standards (accepted and predicted) in the specified authority.");
   sourceUrl += authenticationParameters(); // add the auth stuff
   $.ajax(
