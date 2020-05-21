@@ -729,7 +729,7 @@ class AssetBrowser {
       // relationships, we render immediately after getting each API page.
       // This is done by filling our map object and completely reflowing.
       let alignments_by_authority = new Map()
-      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/alignments&fields[standards]=document.publication.authorities,statement,number${alignment_filter}&limit=100`)) {
+      for await (const response of this.sdk.pager(`${BASE_URL}/assets/${guid}/alignments?fields[standards]=document.publication.authorities,statement,number${alignment_filter}&limit=100`)) {
         // Just a simple partitioning algorithm on authority descr
         for (const alignment of response.data) {
           // If the alignment has no data for some reason, just skip it
