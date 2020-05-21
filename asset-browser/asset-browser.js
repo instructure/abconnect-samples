@@ -562,7 +562,7 @@ class AssetBrowser {
       const item = $(`
         <li class="mdc-grid-tile">
           <div class="mdc-grid-tile__primary">
-            <div class="mdc-grid-tile__primary-content" style="background-image: url(${this.pictureCallback(asset)});/"></div>
+            <div class="mdc-grid-tile__primary-content" style="background-image: url(${this.pictureCallback(asset)}), url(img/logo.png);/"></div>
           </div>
           <span class="mdc-grid-tile__secondary">
             <i class="mdc-grid-tile__icon material-icons" aria-label="More Information" title="More Information" value="${asset.id}">info</i>
