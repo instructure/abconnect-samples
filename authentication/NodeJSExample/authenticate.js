@@ -7,9 +7,9 @@ var user_id = '383485'                             // Partner defined. May be an
 //
 // Build the signature
 //
-var message = '' + expires + "\n";
+var message = '' + expires;
 if (user_id) {
-    message += user_id;
+    message += "\n" + user_id;
 }
 var crypto = require('crypto');
 var signature = crypto.createHmac('SHA256', partner_key).update(message).digest('base64')
