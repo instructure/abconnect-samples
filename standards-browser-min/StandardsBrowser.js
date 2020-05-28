@@ -1,6 +1,6 @@
 const HOST = 'https://api.academicbenchmarks.com'
 const STANDARDS_URL = HOST + "/rest/v4.1/standards";
-const TOPICS_URL = HOST + "/rest/v4.1/topics";
+const PROVIDER_URL = HOST + "/rest/v4.1/providers";
 const RETRY_LIMIT=20;
 const RETRY_LAG=500;
 
@@ -51,21 +51,21 @@ function checkTopicsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var topicURL = TOPICS_URL + '?limit=0' + authenticationParameters();
+  var providerUrl = PROVIDER_URL + '?fields[providers]=taxonomies&filter[providers]=id eq _me' + authenticationParameters();
   //
   // request the data
   //
   $.ajax( 
     { 
-      url: topicURL,
+      url: providerUrl,
       crossDomain: true, 
       dataType: 'json', 
       tryCount: 0, 
       retryLimit: RETRY_LIMIT,
       success: function(data,status)
         {
-          gTopicsLicensed = true; // note we can use topics
-          init();
+          if (data.data[0].attributes.taxonomies.includes("topics")) gTopicsLicensed = true; // note we can use topics
+          init(); // Get things started
         },
       error: function(xhr, status, error) 
         { 
@@ -76,8 +76,6 @@ function checkTopicsLicenseLevel() {
                   
               if (xhr.responseJSON.errors[0].detail === 'Signature is not authorized.') {
                 alert('Invalid partner ID or key.');
-              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') { // not going to do the Topic thing
-                init();
               } else alert(`Unexpected error: ${xhr.responseText}`);
             } else alert(`Unexpected error: ${xhr.responseText}`);
             break;

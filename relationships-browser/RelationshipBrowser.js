@@ -1,6 +1,6 @@
 const HOST = 'https://api.academicbenchmarks.com'
 const STANDARDS_URL = HOST + "/rest/v4.1/standards";
-const TOPICS_URL = HOST + "/rest/v4.1/topics";
+const PROVIDER_URL = HOST + "/rest/v4.1/providers";
 const DETAILS_LABEL_REL = 'Details of Related Standard';
 const DETAILS_LABEL = 'Details of Source Standard';
 const LIST_NAME = {
@@ -760,21 +760,26 @@ function checkTopicsLicenseLevel() {
   //
   // hit the topics endpoint - if you get a 401, you are not licensed for topics or concepts (or possibly don't have a valid ID/key - but either way, let's drop topics and concepts)
   //
-  var topicURL = TOPICS_URL + '?limit=0&facet_summary=_none' + authenticationParameters();
+  var providerUrl = PROVIDER_URL + '?fields[providers]=taxonomies&filter[providers]=id eq _me' + authenticationParameters();
   //
   // request the data
   //
   $.ajax( 
     { 
-      url: topicURL,
+      url: providerUrl,
       crossDomain: true, 
       dataType: 'json', 
       tryCount: 0, 
       retryLimit: RETRY_LIMIT,
       success: function(data,status) {
-        gTopicsLicensed = true; // note we can use topics and relationships as topics is a higher license level than relationships
-        gRelationshipsLicensed = true;
-        init();
+        if (data.data[0].attributes.taxonomies.includes("topics")) {
+          gTopicsLicensed = true; // note we can use topics and relationships as topics is a higher license level than relationships
+          gRelationshipsLicensed = true;
+          init();
+        } else { // not going to do the Topic thing
+          // not going to do the Topic thing - let's check the relationships
+          checkRelationshipLicenseLevel();
+        }
         },
       error: function(xhr, status, error) 
         { 
@@ -789,9 +794,6 @@ function checkTopicsLicenseLevel() {
                   $('.sourceStandard').standardsBrowser('destroy'); // this isn't strictly necessary, but we want to make sure it is cleared if someone changes the auth credentials and re-initializes
                   gWidgetInit = false;
                 }
-              } else if (xhr.responseJSON.errors[0].detail === 'This account is not licensed to access Topics') { // not going to do the Topic thing
-                // not going to do the Topic thing - let's check the relationships
-                checkRelationshipLicenseLevel();
               } else alert(`Unexpected error: ${xhr.responseText}`);
             } else alert(`Unexpected error: ${xhr.responseText}`);
             break;
