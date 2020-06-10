@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-// TODO: relationship paging
-
 const ABAPI = require('./sdk.js')
 
 const Bottleneck = require("bottleneck");
