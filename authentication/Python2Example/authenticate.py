@@ -17,5 +17,5 @@ parms = 'partner.id=' + partner_id + \
         '&auth.signature=' + encoded_sig + \
         '&auth.expires=' + expires + \
         '&user.id=' + user_id
-result = urllib.urlopen('https://api.academicbenchmarks.com/rest/v4.1/standards?' + parms).read()
+result = urllib.urlopen('https://api.abconnect.certicaconnect.com/rest/v4.1/standards?' + parms).read()
 print result

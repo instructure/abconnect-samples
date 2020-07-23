@@ -1,4 +1,4 @@
-const HOST = 'https://api.academicbenchmarks.com'
+const HOST = 'https://api.abconnect.certicaconnect.com'
 const STANDARDS_URL = HOST + "/rest/v4.1/standards";
 const PROVIDER_URL = HOST + "/rest/v4.1/providers";
 const RETRY_LIMIT=20;

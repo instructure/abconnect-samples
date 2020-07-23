@@ -1,4 +1,4 @@
-const BASE_URL = 'https://api.academicbenchmarks.com/rest/v4.1'
+const BASE_URL = 'https://api.abconnect.certicaconnect.com/rest/v4.1'
 
 class AssetBrowser {
 

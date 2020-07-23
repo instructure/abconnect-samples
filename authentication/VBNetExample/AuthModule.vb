@@ -24,7 +24,7 @@ Module AuthModule
             Signature = Convert.ToBase64String(myHMACSHA256.ComputeHash(MessageBytes))
         End Using
 
-        Dim RequestBuilder As New UriBuilder("https://api.academicbenchmarks.com/rest/v4.1/standards")
+        Dim RequestBuilder As New UriBuilder("https://api.abconnect.certicaconnect.com/rest/v4.1/standards")
         RequestBuilder.Query = String.Format(
           "partner.id={0}&auth.signature={1}&auth.expires={2}&user.id={3}",
           WebUtility.UrlEncode(PartnerId),

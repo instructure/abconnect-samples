@@ -1,10 +1,9 @@
 {
-	"variables": [],
 	"info": {
+		"_postman_id": "5e0c2226-9ee3-4d3d-a788-e6ee3ab0f960",
 		"name": "Demo Activating Content Using Clarifications",
-		"_postman_id": "61dddcb2-4eb6-aff7-b92c-439e1e2c911c",
 		"description": "This collection is a set of calls to show one potential workflow for activating content using clarifications.  Note that the intent is to illustrate the technical process via the API.  The editorial appropriateness of the specific selection of Concepts and Standards is debateable.\n",
-		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
 		{
@@ -13,29 +12,49 @@
 				{
 					"listen": "test",
 					"script": {
-						"type": "text/javascript",
+						"id": "60109230-cbd7-4960-bde0-f85a82ba653a",
 						"exec": [
 							"var asset = JSON.parse(responseBody).data;",
 							"// snag the asset ID",
 							"postman.setEnvironmentVariable(\"NarrowDemoAssetID\", asset.id);",
 							""
-						]
+						],
+						"type": "text/javascript"
 					}
 				}
 			],
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/assets?partner.id=",
 				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json; charset=utf-8",
-						"description": ""
+						"value": "application/json; charset=utf-8"
 					}
 				],
 				"body": {
 					"mode": "raw",
 					"raw": "{\r\n  \"data\": {\r\n    \"type\": \"assets\",\r\n    \"attributes\": {\r\n      \"client_id\": \"demo579\",\r\n      \"asset_type\": \"Example Assets\",\r\n      \"title\": \"Linear equations\",\r\n      \"education_levels\": \r\n        {\r\n          \"grades\": [\r\n            {\r\n              \"code\": \"9\"\r\n            },\r\n            {\r\n              \"code\": \"10\"\r\n            },\r\n            {\r\n              \"code\": \"11\"\r\n            },\r\n            {\r\n              \"code\": \"12\"\r\n            }\r\n          ]\r\n        },\r\n      \"disciplines\": \r\n        {\r\n          \"subjects\": [\r\n            {\r\n              \"code\": \"MATH\"\r\n            }\r\n          ],\r\n          \"strands\": [\r\n            {\r\n              \"guid\": \"81C28CFA-046C-11E0-9AE1-661C9DFF4B22\"\r\n            }\r\n          ]\r\n        }\r\n    }\r\n  }\r\n}"
+				},
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/assets?partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"assets"
+					],
+					"query": [
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "Create a sample asset to work on.  Check the Body to get the details of the asset.  Our hypothetical example is a lesson plan on solving linear equations."
 			},
@@ -44,18 +63,37 @@
 		{
 			"name": "Find Relevant Standards",
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/standards?filter[standards]=(disciplines.subjects.code eq 'MATH' and education_levels.grades.code eq '9' and query('linear equation') and utilizations.type eq 'alignable' and document.publication.authorities.acronym eq 'CC')&partner.id=",
 				"method": "GET",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json; charset=utf-8",
-						"description": ""
+						"value": "application/json; charset=utf-8"
 					}
 				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"data\": [\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"6B29DCD6-29EB-11D8-9C6E-A97B3BAEC73A\", \r\n            \"meta\": {\r\n                \"disposition\": \"accepted\", \r\n                \"tags\": [\r\n                    \"excellent\"\r\n                ]\r\n            }\r\n        },\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"1CB74646-7053-11DF-8EBF-BE719DFF4B22\", \r\n            \"meta\": {\r\n                \"disposition\": \"rejected\"\r\n            }\r\n        }\r\n    ]\r\n}"
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/standards?filter[standards]=(disciplines.subjects.code eq 'MATH' and education_levels.grades.code eq '9' and query('linear equation') and utilizations.type eq 'alignable' and document.publication.authorities.acronym eq 'CC')&partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"standards"
+					],
+					"query": [
+						{
+							"key": "filter[standards]",
+							"value": "(disciplines.subjects.code eq 'MATH' and education_levels.grades.code eq '9' and query('linear equation') and utilizations.type eq 'alignable' and document.publication.authorities.acronym eq 'CC')"
+						},
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "Typically an author would begin with a standard in mind when developing materials, but for our example, let's do a search for linear equations to find some standards to use."
 			},
@@ -64,18 +102,41 @@
 		{
 			"name": "Specific Standards",
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/standards?fields[standards]=statement.descr,key_ideas&filter[standards]=(guid in ('20098A98-7053-11DF-8EBF-BE719DFF4B22', '20138D86-7053-11DF-8EBF-BE719DFF4B22'))&partner.id=",
 				"method": "GET",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json; charset=utf-8",
-						"description": ""
+						"value": "application/json; charset=utf-8"
 					}
 				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n    \"data\": [\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"20098A98-7053-11DF-8EBF-BE719DFF4B22\", \r\n            \"meta\": {\r\n                \"disposition\": \"accepted\", \r\n                \"tags\": [\r\n                    \"excellent\"\r\n                ]\r\n            }\r\n        },\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"20138D86-7053-11DF-8EBF-BE719DFF4B22\", \r\n            \"meta\": {\r\n                \"disposition\": \"rejected\"\r\n            }\r\n        }\r\n    ]\r\n}"
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/standards?fields[standards]=statement.descr,key_ideas&filter[standards]=(guid in ('20098A98-7053-11DF-8EBF-BE719DFF4B22', '20138D86-7053-11DF-8EBF-BE719DFF4B22'))&partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"standards"
+					],
+					"query": [
+						{
+							"key": "fields[standards]",
+							"value": "statement.descr,key_ideas"
+						},
+						{
+							"key": "filter[standards]",
+							"value": "(guid in ('20098A98-7053-11DF-8EBF-BE719DFF4B22', '20138D86-7053-11DF-8EBF-BE719DFF4B22'))"
+						},
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "Here's the specific standards that we'll use in our example.  To simplify life, we just return the statement and key_ideas (which give us some concepts to think about)."
 			},
@@ -84,18 +145,39 @@
 		{
 			"name": "Activate Asset w/Standards",
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/assets/{{NarrowDemoAssetID}}/standards?partner.id=",
 				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json; charset=utf-8",
-						"description": ""
+						"value": "application/json; charset=utf-8"
 					}
 				],
 				"body": {
 					"mode": "raw",
 					"raw": "{\r\n    \"data\": [\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"20098A98-7053-11DF-8EBF-BE719DFF4B22\", \r\n            \"meta\": {\r\n                \"disposition\": \"accepted\", \r\n                \"tags\": [\r\n                    \"Excellent\"\r\n                ]\r\n            }\r\n        },\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"20138D86-7053-11DF-8EBF-BE719DFF4B22\", \r\n            \"meta\": {\r\n                \"disposition\": \"rejected\"\r\n            }\r\n        }\r\n    ]\r\n}"
+				},
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/assets/{{NarrowDemoAssetID}}/alignments?partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"assets",
+						"{{NarrowDemoAssetID}}",
+						"alignments"
+					],
+					"query": [
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "Relate specific standards with the asset.  Note that we accept one we think appropriate for alignment.  We also reject one that we don't like.  In this case, we reject the quadratic equations one because our lesson plan doesn't cover that.  From an editorial perspective, this may not be a valid reason to reject the standard but we want to illustrate the general process."
 			},
@@ -104,18 +186,39 @@
 		{
 			"name": "Activate Asset w/Concepts",
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/assets/{{NarrowDemoAssetID}}/concepts?partner.id=",
 				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json; charset=utf-8",
-						"description": ""
+						"value": "application/json; charset=utf-8"
 					}
 				],
 				"body": {
 					"mode": "raw",
 					"raw": "{\r\n    \"data\": [\r\n        {\r\n          \"type\": \"concepts\",\r\n          \"id\": \"0BC501B8-3BA2-11E1-A29D-011A9DFF4B22\",\r\n          \"meta\": {\r\n            \"emphasis\": \"related\"\r\n          }\r\n        },\r\n        {\r\n            \"id\": \"0AFF56DE-3BA2-11E1-A29D-011A9DFF4B22\",\r\n            \"type\": \"concepts\",\r\n          \"meta\": {\r\n            \"emphasis\": \"central\"\r\n          }\r\n        },\r\n        {\r\n            \"type\": \"concepts\",\r\n            \"id\": \"0AFF94AA-3BA2-11E1-A29D-011A9DFF4B22\",\r\n          \"meta\": {\r\n            \"emphasis\": \"not_applicable\"\r\n          }\r\n        },\r\n        {\r\n            \"type\": \"concepts\",\r\n            \"id\": \"0AFADCEE-3BA2-11E1-A29D-011A9DFF4B22\",\r\n          \"meta\": {\r\n            \"emphasis\": \"not_applicable\"\r\n          }\r\n        }\r\n    ]\r\n}"
+				},
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/assets/{{NarrowDemoAssetID}}/concepts?partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"assets",
+						"{{NarrowDemoAssetID}}",
+						"concepts"
+					],
+					"query": [
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "We selected some concepts from the list of standards we focused on.  Let's relate them to the asset as appropriate.  Central means the concept is a core part of the asset.  Related means it is in there, but not a core part.  Not_applicable means it is not relevant to this asset."
 			},
@@ -124,18 +227,46 @@
 		{
 			"name": "Clarifications",
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/clarifier/{{NarrowDemoAssetID}}?include=clarification_concepts,clarification_standards&fields[standards]=statement.descr&fields[concepts]=descr,context&partner.id=",
 				"method": "GET",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json",
-						"description": ""
+						"value": "application/json"
 					}
 				],
-				"body": {
-					"mode": "raw",
-					"raw": "{\r\n  \"data\": {\r\n    \"type\": \"assets\",\r\n    \"attributes\": {\r\n      \"client_id\": \"demo5790\",\r\n      \"asset_type\": \"article\",\r\n      \"title\": \"Linear equations\",\r\n      \"descriptors\": [\r\n        {\r\n          \"name\": \"Complexity\",\r\n          \"value\": \"high\"\r\n        }\r\n      ],\r\n      \"education_levels\": \r\n        {\r\n          \"grades\": [\r\n            {\r\n              \"code\": \"9\"\r\n            },\r\n            {\r\n              \"code\": \"10\"\r\n            },\r\n            {\r\n              \"code\": \"11\"\r\n            },\r\n            {\r\n              \"code\": \"12\"\r\n            }\r\n          ]\r\n        },\r\n      \"disciplines\": \r\n        {\r\n          \"subjects\": [\r\n            {\r\n              \"code\": \"MATH\"\r\n            }\r\n          ],\r\n          \"strands\": [\r\n            {\r\n              \"guid\": \"81C28CFA-046C-11E0-9AE1-661C9DFF4B22\"\r\n            }\r\n          ]\r\n        }\r\n    }\r\n  }\r\n}"
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/clarifier/{{NarrowDemoAssetID}}?include=clarification_concepts,clarification_standards&fields[standards]=statement.descr&fields[concepts]=descr,context&partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"clarifier",
+						"{{NarrowDemoAssetID}}"
+					],
+					"query": [
+						{
+							"key": "include",
+							"value": "clarification_concepts,clarification_standards"
+						},
+						{
+							"key": "fields[standards]",
+							"value": "statement.descr"
+						},
+						{
+							"key": "fields[concepts]",
+							"value": "descr,context"
+						},
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "Ask the system which standards and concepts it is unclear about.  Based on our work so far, the system is pretty confident that some standards and concepts are part of the asset and pretty confident that some others are NOT part of the asset.  The standards and concepts it returns here are the grey areas it needs a human to review and express an opinion on to help the system understand the asset better."
 			},
@@ -144,18 +275,39 @@
 		{
 			"name": "Clarify Asset Standards",
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/assets/{{NarrowDemoAssetID}}/standards?partner.id=",
 				"method": "POST",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json; charset=utf-8",
-						"description": ""
+						"value": "application/json; charset=utf-8"
 					}
 				],
 				"body": {
 					"mode": "raw",
 					"raw": "{\r\n    \"data\": [\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"99b1524e-ea9b-4af0-bb8e-7bbcbe5f7ab7\", \r\n            \"meta\": {\r\n                \"disposition\": \"accepted\", \r\n                \"tags\": [\r\n                    \"Excellent\"\r\n                ]\r\n            }\r\n        },\r\n        {\r\n            \"type\": \"standards\", \r\n            \"id\": \"200598A2-7053-11DF-8EBF-BE719DFF4B22\", \r\n            \"meta\": {\r\n                \"disposition\": \"rejected\"\r\n            }\r\n        }\r\n    ]\r\n}"
+				},
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/assets/{{NarrowDemoAssetID}}/alignments?partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"assets",
+						"{{NarrowDemoAssetID}}",
+						"alignments"
+					],
+					"query": [
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
 				},
 				"description": "Refine selected standards based on user input.  Again - this is a technical example.  I'm not sure of the editorial perspective on the standards and the disposition they are given here.  You would likely want to do the same thing Concepts."
 			},
@@ -167,30 +319,52 @@
 				{
 					"listen": "test",
 					"script": {
-						"type": "text/javascript",
+						"id": "784991ab-e3dc-4013-b50b-4573772f19b0",
 						"exec": [
 							"postman.clearEnvironmentVariable(\"NarrowDemoAssetID\");"
-						]
+						],
+						"type": "text/javascript"
 					}
 				}
 			],
 			"request": {
-				"url": "https://api.academicbenchmarks.com/rest/v4/assets/{{NarrowDemoAssetID}}?partner.id=",
 				"method": "DELETE",
 				"header": [
 					{
 						"key": "Content-Type",
-						"value": "application/json",
-						"description": ""
+						"value": "application/json"
 					}
 				],
 				"body": {
 					"mode": "raw",
 					"raw": ""
 				},
+				"url": {
+					"raw": "https://api.abconnect.certicaconnect.com/rest/v4.1/assets/{{NarrowDemoAssetID}}?partner.id=",
+					"protocol": "https",
+					"host": [
+						"api",
+						"abconnect",
+						"certicaconnect",
+						"com"
+					],
+					"path": [
+						"rest",
+						"v4.1",
+						"assets",
+						"{{NarrowDemoAssetID}}"
+					],
+					"query": [
+						{
+							"key": "partner.id",
+							"value": ""
+						}
+					]
+				},
 				"description": "Clean up"
 			},
 			"response": []
 		}
-	]
+	],
+	"protocolProfileBehavior": {}
 }

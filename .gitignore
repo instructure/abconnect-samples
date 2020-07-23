@@ -29,4 +29,6 @@ authentication/JavaExample/.project
 authentication/JavaExample/.classpath
 authentication/JavaExample/.gitignore
 
-authentication/VBNetExample/.vs/ABConnectVBNetAuthExample/v15/Server/sqlite3/
+authentication/VBNetExample/.vs
+
+authentication/CSharpExample/.vs

@@ -14,7 +14,7 @@ my $signature = hmac_sha256_base64($message, $partner_key);
 
 my $uri = URI->new();
 $uri->scheme('https');
-$uri->host('api.academicbenchmarks.com');
+$uri->host('api.abconnect.certicaconnect.com');
 $uri->port(443);
 $uri->path('rest/v4.1/standards');
 $uri->query_form(

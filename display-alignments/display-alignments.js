@@ -1,4 +1,4 @@
-const HOST = 'https://api.academicbenchmarks.com'
+const HOST = 'https://api.abconnect.certicaconnect.com'
 const ASSETS_URL = HOST + "/rest/v4.1/assets";
 const STANDARDS_URL = HOST + "/rest/v4.1/standards";
 const STANDARDS_PAGE_SIZE = 100;

@@ -28,7 +28,7 @@ var requester = require('sync-request');
 var response;
 var body;
 try {
-  response = requester('GET', 'https://api.academicbenchmarks.com/rest/v4.1/standards?' + queryString);
+  response = requester('GET', 'https://api.abconnect.certicaconnect.com/rest/v4.1/standards?' + queryString);
   body = response.getBody('utf-8');
 } catch (e) {
   console.log('' + e);
