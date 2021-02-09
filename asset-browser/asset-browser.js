@@ -917,7 +917,7 @@ class SearchFilter {
 
   build_filter(){
     // Text Search (alpha-numeric only to prevent injection)
-    let search = $('.textSearch input').val().replace(/[^a-zA-Z0-9]+/g, '')
+    let search = $('.textSearch input').val().replace(/[^a-zA-Z0-9 ]+/g, '')
     if(search){
       // We search on both title and 'all' to boost the score of title-text matches
       return `(query(title,'${search}') OR query('${search}'))`
