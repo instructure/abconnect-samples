@@ -216,7 +216,7 @@ async function processFile() {
 
       // Collect the siblings of our original standard
       for await (const response of api.pager(
-        `${BASE_URL}/rest/v4.1/standards?fields[standards]=${fields}&filter[standards]=${filter}`)
+        `${BASE_URL}/rest/v4.1/standards?fields[standards]=${fields}&filter[standards]=${filter}&filter[${tools.arguments().type}]=(id eq '${guid}')`)
       ) {
         siblings.push(...response.data)
       }
@@ -319,11 +319,11 @@ function dumpRow(source, sibling, sourceGUID, siblingGUID) {
   if (tools.arguments().type === PEERS ||
         tools.arguments().type === TOPICS) { // concept doesn't exist for peers or topics
   } else if (tools.arguments().type === DERIVATIVES) { // if we are looking for derivatives, then we are only concerned about the sameness between the origin and this derivative
-    gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.origins.data, source.id);
-    gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.origins.data, source.id);
-  } else if (tools.arguments().type === ORIGINS) { // if we are looking for origins, then we are only concerned about the sameness between the origin and this derivative
     gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.derivatives.data, source.id);
     gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.derivatives.data, source.id);
+  } else if (tools.arguments().type === ORIGINS) { // if we are looking for origins, then we are only concerned about the sameness between the origin and this derivative
+    gOutSheet.getCell(gOutRow,9).value = checkSameText(sibling.relationships.origins.data, source.id);
+    gOutSheet.getCell(gOutRow,10).value = checkSameConcepts(sibling.relationships.origins.data, source.id);
   } else if (tools.arguments().type === PEER_DERIVATIVES) {
     //
     // if we are looking for peer_derivatives, we are concerned about this standard's (what we call here the "source")
