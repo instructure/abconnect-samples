@@ -17,6 +17,7 @@ const PEERS = 'peers';
 const DERIVATIVES = 'derivatives';
 const PEER_DERIVATIVES = 'peer_derivatives';
 const TOPICS = 'topics';
+const CROSSWALKS = 'crosswalks';
 const ORIGINS = 'origins';
 const NO = 'N';
 const YES = 'Y';
@@ -51,7 +52,7 @@ tools.arguments()
 // Abort if the required arguments are not present
 //
 if (!tools.arguments().auth || !tools.arguments().output || !inputFile || !tools.arguments().document ||
-    ![PEERS, DERIVATIVES, PEER_DERIVATIVES, ORIGINS, TOPICS].includes(tools.arguments().type)) {
+    ![PEERS, DERIVATIVES, PEER_DERIVATIVES, ORIGINS, TOPICS, CROSSWALKS].includes(tools.arguments().type)) {
   tools.arguments().help();
 }
 tools.LOGGER().debug('Auth: ' + tools.arguments().auth);
@@ -148,7 +149,7 @@ async function processFile() {
     const fields = 'id,section,number,statement,origins,derivatives' + (
       tools.arguments().type == TOPICS
         ? ',topics' //Include topics if they're needed
-        : ''
+        : tools.arguments().type == CROSSWALKS ? ',crosswalks' : ''
      )
 
     // Keep track of if we found the GUID provided. Wish there was a cleaner way
@@ -209,6 +210,34 @@ async function processFile() {
 
       // Convert map (which we used to ensure uniqueness) into an array
       siblings = [...related_standards.values()]
+    } else if (tools.arguments().type == CROSSWALKS) {
+      // Collect the GUIDs of the crosswalks
+      let crosswalks = []
+      for await (const response of api.pager(
+        `${BASE_URL}/rest/v4.1/standards/${guid}/crosswalks`)
+      ) {
+        crosswalks.push(...(response.data.map(crosswalk => crosswalk.id)))
+      }
+
+      // split crosswalks into chunks of 25
+      const chunks = []
+      const chunkSize = 25
+      for (let i = 0; i < crosswalks.length; i += chunkSize) {
+        const chunk = crosswalks.slice(i, i + chunkSize);
+        chunks.push(chunk)
+      }
+      
+
+      // collect crosswalk data by chunk
+      for (const chunk of chunks) {
+        for await (const response of api.pager(
+          `${BASE_URL}/rest/v4.1/standards?fields[standards]=${fields}&filter[standards]=document.guid eq '${tools.arguments().document}' and id in (${chunk.map(guid => `'${guid}'`).join(',')})`)
+        ) {
+          response.data.forEach(standard => {
+            siblings.push(standard)
+          })
+        }
+      }
     }
     else {
       // Calculate the filter
