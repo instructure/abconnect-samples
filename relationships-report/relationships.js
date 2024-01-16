@@ -42,7 +42,7 @@ tools.arguments()
   .option('-a, --auth <authentication string>', 'The query string of the authentication information starting with &.  It must contain a value for partner.id, ' +
             'auth.signature and auth.expires.  The values must be properly URI encoded.  It may optionally include a value for user.id. Including authentication details is required.')
   .option('-d, --document <GUID>', 'The GUID of the destination document. Required.')
-  .option('-t, --type <relationship_type>', 'The type of relationship you want to walk.  Options: peers, derivatives, peer_derivatives, origins, topics.', 'peers')
+  .option('-t, --type <relationship_type>', 'The type of relationship you want to walk.  Options: peers, derivatives, peer_derivatives, origins, topics, crosswalks.', 'peers')
   .option('-o, --output <output_file>', 'The output filename. Default: out.xlsx', 'out.xlsx')
   .action(function(loc) {
   inputFile = loc;
